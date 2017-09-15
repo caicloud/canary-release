@@ -1,0 +1,70 @@
+apiVersion: release.caicloud.io/v1alpha1
+kind: CanaryRelease
+metadata:
+  name: cr2 
+  namespace: test
+spec:
+  release: test222
+  version: 1
+  config: |
+    '{
+        "_config": {
+            "_metadata": {
+                "name": "sub",
+                "version": "1.1.0",
+                "description": "A basic template for application22222222222",
+                "creationTime": "2017-07-14 12:00:00",
+                "source": "/library/template/1.0.0",
+                "class": "Default",
+                "template": {
+                    "type": "template.caicloud.io/application",
+                    "version": "1.0.0"
+                }
+            },
+            "controllers": [{
+                "type": "Deployment",
+                "controller": {
+                    "replica": 1
+                },
+                "containers": [{
+                    "image": "cargo.caicloudprivatetest.com/caicloud/nginx:1.9.7",
+                    "resources": {
+                        "requests": {
+                            "cpu": "150m",
+                            "memory": "100Mi"
+                        },
+                        "limits": {
+                            "cpu": "150m",
+                            "memory": "150Mi"
+                        }
+                    }
+                }],
+                "services": [{
+                    "name": "nginx",
+                    "type": "ClusterIP",
+                    "export": true,
+                    "ports": [{
+                        "protocol": "HTTP",
+                        "targetPort": 80,
+                        "port": 80
+                    }]
+                }]
+            }]
+        }
+    }'
+  path: "sssss/sub"
+  services:
+  - service: nginx
+    ports:
+    - port: 80
+      protocol: HTTP 
+      config:
+        weight: 50
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 200m
+      memory: 200Mi
+

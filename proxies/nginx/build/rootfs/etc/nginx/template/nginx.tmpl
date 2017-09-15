@@ -1,0 +1,82 @@
+{{ $all := . }}
+{{ $cfg := .Cfg }}
+{{ $IsIPV6Enabled := .IsIPV6Enabled }}
+daemon off;
+
+worker_processes {{ $cfg.WorkerProcesses }};
+pid /run/nginx.pid;
+{{ if ne .MaxOpenFiles 0 }}
+worker_rlimit_nofile {{ .MaxOpenFiles }};
+{{ end}}
+
+events {
+    multi_accept        on;
+    worker_connections  {{ $cfg.MaxWorkerConnections }};
+    use                 epoll;
+}
+
+http {
+    server {
+        # nginx status use 7070, all other upsteam port will start from 8080
+        listen 127.0.0.1:7070 default_server reuseport backlog={{ $all.BacklogSize }};
+        {{ if $IsIPV6Enabled }}listen [::]:7070  default_server reuseport backlog={{ $all.BacklogSize }};{{ end }}
+        set $proxy_upstream_name "-";
+
+        location /nginx_status {
+            set $proxy_upstream_name "internal";
+
+            {{ if $cfg.EnableVtsStatus }}
+            vhost_traffic_status_display;
+            vhost_traffic_status_display_format html;
+            {{ else }}
+            access_log off;
+            stub_status on;
+            {{ end }}
+        }
+   }
+}
+
+stream {
+    log_format log_stream {{ $cfg.LogFormatStream }};
+
+    {{ if $cfg.DisableAccessLog }}
+    access_log off;
+    {{ else }}
+    access_log /var/log/nginx/access.log log_stream;
+    {{ end }}
+    error_log  /var/log/nginx/error.log;
+
+
+    # TCP services
+    {{ range $i, $tcpServer := .TCPBackends }}
+    upstream tcp-{{ $tcpServer.Port }}-{{ $tcpServer.Backend.Namespace }}-{{ $tcpServer.Backend.Name }}-{{ $tcpServer.Backend.Port }} {
+    {{ range $j, $endpoint := $tcpServer.Endpoints }}
+        server                  {{ $endpoint.Address }}:{{ $endpoint.Port }} weight={{ $endpoint.Weight }};
+    {{ end }}
+    }
+    server {
+        listen                  {{ $tcpServer.Port }};
+        {{ if $IsIPV6Enabled }}listen                  [::]:{{ $tcpServer.Port }};{{ end }}
+        proxy_pass              tcp-{{ $tcpServer.Port }}-{{ $tcpServer.Backend.Namespace }}-{{ $tcpServer.Backend.Name }}-{{ $tcpServer.Backend.Port }};
+    }
+
+    {{ end }}
+
+    # UDP services
+    {{ range $i, $udpServer := .UDPBackends }}
+    upstream udp-{{ $udpServer.Port }}-{{ $udpServer.Backend.Namespace }}-{{ $udpServer.Backend.Name }}-{{ $udpServer.Backend.Port }} {
+    {{ range $j, $endpoint := $udpServer.Endpoints }}
+        {{ if gt $endpoint.Weight 0 }}
+        server                  {{ $endpoint.Address }}:{{ $endpoint.Port }} weight={{ $endpoint.Weight }};
+        {{ end }}
+    {{ end }}
+    }
+
+    server {
+        listen                  {{ $udpServer.Port }} udp;
+        {{ if $IsIPV6Enabled }}listen                  [::]:{{ $udpServer.Port }} udp;{{ end }}
+        proxy_responses         1;
+        proxy_pass              udp-{{ $udpServer.Port }}-{{ $udpServer.Backend.Namespace }}-{{ $udpServer.Backend.Name }}-{{ $udpServer.Backend.Port }};
+    }
+    {{ end }}
+}
