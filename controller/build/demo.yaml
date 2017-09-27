@@ -1,0 +1,107 @@
+apiVersion: release.caicloud.io/v1alpha1
+kind: CanaryRelease
+metadata:
+  name: cr
+  namespace: test
+spec:
+  release: test222
+  version: 1
+  config: |
+    '{
+      "_config": {
+        "_metadata": {
+          "name": "sssss",
+          "version": "1.0.0",
+          "description": "A basic template for application",
+          "creationTime": "2017-07-14 12:00:00",
+          "source": "/library/template/1.0.0",
+          "class": "Default",
+          "template": {
+            "type": "template.caicloud.io/application",
+            "version": "1.0.0"
+          }
+        },
+        "controllers": [
+          {
+            "type": "Deployment",
+            "controller": {
+              "replica": 1
+            },
+            "containers": [
+              {
+                "image": "cargo.caicloudprivatetest.com/caicloud/nginx:1.9.7",
+                "env": [{
+                    "name": "XX_XX",
+                    "value":"{\"max_step\":100,\"sync\":false,\"use_gpu\":false,\"logdir\":\"/tmp/mnist\",\"save_checkpoints_secs\":600,\"save_summaries_steps\":100,\"export_or_not\":false,\"export_dir\":\"\"}"
+                }],
+                "resources": {
+                  "requests": {
+                    "cpu": "200m",
+                    "memory": "100Mi"
+                  },
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "100Mi"
+                  }
+                }
+              }
+            ],
+            "services":[
+                {
+                    "name":"test222",
+                    "type":"ClusterIP",
+                    "export":true,
+                    "ports":[
+                        {
+                            "protocol":"HTTP",
+                            "targetPort":80,
+                            "port":80
+                        }]
+                },
+                {
+                    "name":"test222x",
+                    "type":"ClusterIP",
+                    "export":true,
+                    "ports":[
+                        {
+                            "protocol":"HTTP",
+                            "targetPort":80,
+                            "port":80
+                        },
+                        {
+                            "protocol":"HTTP",
+                            "targetPort":80,
+                            "port":8080
+                        }]
+                }
+            ]
+          }
+        ]
+      }
+    }'
+  path: "sssss"
+  services:
+  - service: test222x
+    ports:
+    - port: 8080
+      protocol: TCP
+      config:
+        weight: 50
+    - port: 80
+      protocol: TCP
+      config:
+        weight: 60
+  - service: test222
+    ports:
+    - port: 80 
+      protocol: TCP
+      config:
+        weight: 60
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 200m
+      memory: 200Mi
+
