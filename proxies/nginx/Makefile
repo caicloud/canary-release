@@ -74,7 +74,7 @@ QEMUVERSION=v2.7.0
 
 IMAGE = $(IMAGE_PREFIX)$(TARGETS)$(IMAGE_SUFFIX)
 
-BASEIMAGE?=gcr.io/google_containers/nginx-slim-$(ARCH):0.21
+BASEIMAGE?=cargo.caicloudprivatetest.com/caicloud/nginx-slim-$(ARCH):0.21
 
 TEMP_DIR := $(shell mktemp -d)
 
