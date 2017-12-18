@@ -36,11 +36,8 @@ import (
 // RunController start lb controller
 func RunController(opts *Options, stopCh <-chan struct{}) error {
 
-	log.Notice("Controller Build Information", log.Fields{
-		"release": version.RELEASE,
-		"commit":  version.COMMIT,
-		"repo":    version.REPO,
-	})
+	info := version.Get()
+	log.Noticef("Controller Build Information %v", info.Pretty())
 
 	log.Info("Controller Running with", log.Fields{
 		"debug":     opts.Debug,
@@ -78,7 +75,6 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "canary-release"
-	app.Version = version.RELEASE
 	app.Compiled = time.Now()
 	app.Usage = "k8s canaryrelease resource controller"
 
