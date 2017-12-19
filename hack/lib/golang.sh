@@ -183,13 +183,7 @@ golang::setup_env() {
 		export GOPATH="${GOPATH}:${EXTRA_GOPATH}"
 	fi
 
-	# Change directories so that we are within the GOPATH.  Some tools get really
-	# upset if this is not true.  We use a whole fake GOPATH here to collect the
-	# resultant binaries.  Go will not let us use GOBIN with `go install` and
-	# cross-compiling, and `go install -o <file>` only works for a single pkg.
-	local subdir
-	subdir=$(realpath . | sed "s|$PRJ_ROOT||")
-	cd "${GOPATH}/src/${GO_PACKAGE}/${subdir}"
+	# Assume that we are now within the GOPATH
 
 	# Set GOROOT so binaries that parse code can work properly.
 	export GOROOT=$(go env GOROOT)
