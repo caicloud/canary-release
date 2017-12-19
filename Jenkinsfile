@@ -36,7 +36,8 @@ podTemplate(
                 containerEnvVar(key: 'DOCKER_HOST', value: 'unix:///home/jenkins/docker.sock'),
                 // Change the environment variable WORKDIR as needed.
                 containerEnvVar(key: 'WORKDIR', value: '/go/src/github.com/caicloud/canary-release'),
-                containerEnvVar(key: 'VERSION', value: "${version}"),
+                containerEnvVar(key: 'GO_BUILD_PLATFORMS', value: "linux/amd64"),
+                containerEnvVar(key: 'PRJ_GIT_VERSION', value: "${version}"),
                 containerEnvVar(key: 'REGISTRIES', value: "${REGISTRY}"+"/caicloud")
            ],
        )
@@ -55,7 +56,7 @@ podTemplate(
                        set -e
                        mkdir -p $(dirname ${WORKDIR})
                        rm -rf ${WORKDIR}
-                       ln -sfv $(pwd) ${WORKDIR}
+                       cp -r $(pwd) ${WORKDIR}
                    ''')
                }
 
@@ -72,7 +73,7 @@ podTemplate(
                    sh('''
                        set -e
                        cd ${WORKDIR}
-                       make build GO_BUILD_PLATFORMS=linux/amd64
+                       make build
                    ''')
                }
 
