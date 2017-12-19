@@ -294,6 +294,17 @@ golang::build_binaries_for_platform() {
 
 	if [[ "${local_build:-}" == "true" ]]; then
 		# use local go build
+		for test in "${tests[@]:+${tests[@]}}"; do
+			local outfile=$(golang::output_filename_for_binary "${test}" "${platform}")
+			local testpkg="$(dirname ${test})"
+			go test -i -c \
+				"${goflags[@]:+${goflags[@]}}" \
+				-gcflags "${gogcflags}" \
+				-ldflags "${goldflags}" \
+				-o "${outfile}" \
+				"${testpkg}"
+		done
+
 		log::progress "    "
 		for binary in "${statics[@]:+${statics[@]}}"; do
 			local outfile=$(golang::output_filename_for_binary "${binary}" "${platform}")
@@ -313,19 +324,27 @@ golang::build_binaries_for_platform() {
 				"${binary}"
 			log::progress "*"
 		done
-		for test in "${tests[@]:+${tests[@]}}"; do
-			local outfile=$(golang::output_filename_for_binary "${test}" "${platform}")
-			local testpkg="$(dirname ${test})"
-			go test -i -c \
-				"${goflags[@]:+${goflags[@]}}" \
-				-gcflags "${gogcflags}" \
-				-ldflags "${goldflags}" \
-				-o "${outfile}" \
-				"${testpkg}"
-		done
 		log::progress "\n"
 	else
 		# use docker build
+		for test in "${tests[@]:+${tests[@]}}"; do
+			local outfile=$(golang::output_filename_for_binary "${test}" "${platform}")
+			local testpkg="$(dirname ${test})"
+			docker run --rm \
+				-v ${PRJ_ROOT}:${PRJ_ROOT} \
+				-w ${PRJ_ROOT} \
+				-e GOOS=${GOOS} \
+				-e GOARCH=${GOARCH} \
+				-e GOPATH=${GOPATH} \
+				-e CGO_ENABLED=${CGO_ENABLED} \
+				${GO_ONBUILD_IMAGE} \
+				go test -i -c -o "${outfile}" \
+				"${goflags[@]:+${goflags[@]}}" \
+				-gcflags "${gogcflags}" \
+				-ldflags "${goldflags}" \
+				"${testpkg}"
+		done
+
 		log::progress "    "
 		for binary in "${statics[@]:+${statics[@]}}"; do
 			local outfile=$(golang::output_filename_for_binary "${binary}" "${platform}")
@@ -344,7 +363,6 @@ golang::build_binaries_for_platform() {
 				"${binary}"
 			log::progress "*"
 		done
-
 		for binary in "${nonstatics[@]:+${nonstatics[@]}}"; do
 			local outfile=$(golang::output_filename_for_binary "${binary}" "${platform}")
 			docker run --rm \
@@ -361,23 +379,6 @@ golang::build_binaries_for_platform() {
 				-ldflags "${goldflags}" \
 				"${binary}"
 			log::progress "*"
-		done
-		for test in "${tests[@]:+${tests[@]}}"; do
-			local outfile=$(golang::output_filename_for_binary "${test}" "${platform}")
-			local testpkg="$(dirname ${test})"
-			docker run --rm \
-				-v ${PRJ_ROOT}:${PRJ_ROOT} \
-				-w ${PRJ_ROOT} \
-				-e GOOS=${GOOS} \
-				-e GOARCH=${GOARCH} \
-				-e GOPATH=${GOPATH} \
-				-e CGO_ENABLED=${CGO_ENABLED} \
-				${GO_ONBUILD_IMAGE} \
-				go test -i -c -o "${outfile}" \
-				"${goflags[@]:+${goflags[@]}}" \
-				-gcflags "${gogcflags}" \
-				-ldflags "${goldflags}" \
-				"${testpkg}"
 		done
 		log::progress "\n"
 	fi
@@ -433,10 +434,6 @@ golang::build_binaries() {
 		V=2 log::info "Go version: $(go version)"
 
 		local local_build=${LOCAL_BUILD-}
-		local build_on="in Docker"
-		if [[ ${local_build:-} == "true" ]]; then
-			build_on="on local Host"
-		fi
 
 		local host_platform
 		host_platform=$(golang::host_platform)
@@ -477,6 +474,11 @@ golang::build_binaries() {
 			fi
 		fi
 
+		local build_on="in Docker [${GO_ONBUILD_IMAGE}]"
+		if [[ ${local_build:-} == "true" ]]; then
+			build_on="on localhost [${host_platform}]"
+		fi
+
 		if [[ "${parallel}" == "true" ]]; then
 			log::status "Building environment:" "${build_on}"
 			log::status "Building go targets for {${platforms[*]}} in parallel (output will appear in a burst when complete):" "${targets[@]}"
@@ -501,7 +503,7 @@ golang::build_binaries() {
 			exit ${fails}
 		else
 			for platform in "${platforms[@]}"; do
-				log::status "Building environment ${build_on}"
+				log::status "Building environment:" "${build_on}"
 				log::status "Building go targets for ${platform}:" "${targets[@]}"
 				(
 					golang::set_platform_envs "${platform}"
@@ -547,10 +549,6 @@ golang::unittest() {
 		V=2 log::info "Go version: $(go version)"
 
 		local local_build=${LOCAL_BUILD-}
-		local build_on="in Docker"
-		if [[ ${local_build:-} == "true" ]]; then
-			build_on="on local Host"
-		fi
 
 		local host_platform
 		host_platform=$(golang::host_platform)
@@ -582,8 +580,13 @@ golang::unittest() {
 			platforms=("${host_platform}")
 		fi
 
+		local build_on="in Docker [${GO_ONBUILD_IMAGE}]"
+		if [[ ${local_build:-} == "true" ]]; then
+			build_on="on localhost [${host_platform}]"
+		fi
+
 		for platform in "${platforms[@]}"; do
-			log::status "Testing environment ${build_on}"
+			log::status "Testing environment:" "${build_on}"
 			log::status "Testing go targets for ${platform}:" "${targets[@]}"
 			(
 				golang::set_platform_envs "${platform}"
