@@ -48,8 +48,8 @@ DOCKER_FORCE_PUSH ?= true
 # The final built images are:
 #   $[REGISTRY]/$[IMAGE_PREFIX]$[TARGET]$[IMAGE_SUFFIX]:$[VERSION]
 #   $[REGISTRY] is an item from $[DOCKER_REGISTRIES], $[TARGET] is the basename from $[DOCKER_BUILD_TARGETS[@]].
-DOCKER_IMAGE_PREFIX := $(strip canary-) 
-DOCKER_IMAGE_SUFFIX := $(strip )
+DOCKER_IMAGE_PREFIX := canary-
+DOCKER_IMAGE_SUFFIX := 
 
 define ALL_HELP_INFO
 # Build code.
