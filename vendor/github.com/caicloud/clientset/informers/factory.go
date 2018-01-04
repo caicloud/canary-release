@@ -9,7 +9,9 @@ package informers
 import (
 	apiextensions "github.com/caicloud/clientset/informers/apiextensions"
 	config "github.com/caicloud/clientset/informers/config"
+	loadbalance "github.com/caicloud/clientset/informers/loadbalance"
 	release "github.com/caicloud/clientset/informers/release"
+	resource "github.com/caicloud/clientset/informers/resource"
 	kubernetes "github.com/caicloud/clientset/kubernetes"
 	informers "k8s.io/client-go/informers"
 	time "time"
@@ -33,7 +35,9 @@ type SharedInformerFactory interface {
 
 	Apiextensions() apiextensions.Interface
 	Config() config.Interface
+	Loadbalance() loadbalance.Interface
 	Release() release.Interface
+	Resource() resource.Interface
 }
 
 func (f *sharedInformerFactory) Apiextensions() apiextensions.Interface {
@@ -44,6 +48,14 @@ func (f *sharedInformerFactory) Config() config.Interface {
 	return config.New(f)
 }
 
+func (f *sharedInformerFactory) Loadbalance() loadbalance.Interface {
+	return loadbalance.New(f)
+}
+
 func (f *sharedInformerFactory) Release() release.Interface {
 	return release.New(f)
+}
+
+func (f *sharedInformerFactory) Resource() resource.Interface {
+	return resource.New(f)
 }

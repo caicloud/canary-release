@@ -60,7 +60,7 @@ type ConfigReference struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Specification of the desired behavior of the Release
 	// +optional
-	Status ConfigReferenceStatus `json:"spec,omitempty"`
+	Status ConfigReferenceStatus `json:"status,omitempty"`
 }
 
 // ConfigReferenceStatus describes the config reference list.
@@ -71,16 +71,12 @@ type ConfigReferenceStatus struct {
 // Reference describes the config reference.
 type Reference struct {
 	Name       string       `json:"name"`
+	Namespace  string       `json:"namespace"`
 	Kind       string       `json:"kind"`
+	APIGroup   string       `json:"apiGroup"`
 	APIVersion string       `json:"apiVersion"`
-	Config     []Data       `json:"config,omitempty"`
+	Keys       []string     `json:"keys,omitempty"`
 	Children   []*Reference `json:"children,omitempty"`
-}
-
-// Data describes the config info.
-type Data struct {
-	Name string   `json:"name"`
-	Keys []string `json:"keys"`
 }
 
 // ConfigReferenceList describes an array of ConfigReference instances.

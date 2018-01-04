@@ -1,3 +1,7 @@
+/*
+Copyright 2017 caicloud authors. All rights reserved.
+*/
+
 package controller
 
 import (
@@ -27,6 +31,23 @@ func GetControllerOf(controllee metav1.Object) *metav1.OwnerReference {
 		}
 	}
 	return nil
+}
+
+// RecheckDeletionTimestamp returns a canAdopt() function to recheck deletion.
+//
+// The canAdopt() function calls getObject() to fetch the latest value,
+// and denies adoption attempts if that object has a non-nil DeletionTimestamp.
+func RecheckDeletionTimestamp(getObject func() (metav1.Object, error)) func() error {
+	return func() error {
+		obj, err := getObject()
+		if err != nil {
+			return fmt.Errorf("can't recheck DeletionTimestamp: %v", err)
+		}
+		if obj.GetDeletionTimestamp() != nil {
+			return fmt.Errorf("%v/%v has just been deleted at %v", obj.GetNamespace(), obj.GetName(), obj.GetDeletionTimestamp())
+		}
+		return nil
+	}
 }
 
 type baseControllerRefManager struct {
