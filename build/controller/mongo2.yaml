@@ -1,0 +1,115 @@
+apiVersion: release.caicloud.io/v1alpha1
+kind: CanaryRelease
+metadata:
+  name: mongo2
+  namespace: test
+spec:
+  release: mongodb-2
+  version: 2
+  config: |
+    '{
+        "_config": {
+            "_metadata": {
+                "description": "NoSQL document-oriented database that stores JSON-like documents with dynamic schemas, simplifying the integration of data in content-driven applications.",
+                "name": "mongodb",
+                "template": {
+                    "type": "template.caicloud.io/application",
+                    "version": "1.0.0"
+                },
+                "version": "0.4.7"
+            },
+            "controllers": [{
+                "containers": [{
+                    "env": [{
+                        "name": "MONGODB_ROOT_PASSWORD",
+                        "value": "123456",
+                        "from": {}
+                    }, {
+                        "name": "MONGODB_DATABASE",
+                        "value": "default",
+                        "from": {}
+                    }, {
+                        "name": "MONGODB_USERNAME",
+                        "value": "user",
+                        "from": {}
+                    }, {
+                        "name": "MONGODB_PASSWORD",
+                        "value": "123456",
+                        "from": {}
+                    }],
+                    "mounts": [{
+                        "name": "storage",
+                        "path": "/bitnami/mongodb"
+                    }],
+                    "command": [],
+                    "args": [],
+                    "image": "cargo.caicloudprivatetest.com/library/mongodb:3.4.4-r5",
+                    "imagePullPolicy": "Always",
+                    "ports": [{
+                        "port": 27017,
+                        "protocol": "TCP"
+                    }],
+                    "resources": {
+                        "limits": {
+                            "cpu": "500m",
+                            "memory": "512Mi"
+                        },
+                        "requests": {
+                            "cpu": "200m", 
+                            "memor y": "128Mi"
+                        }
+                    }
+                }],
+                "services": [{
+                    "ports": [{
+                        "protocol": "TCP",
+                        "targetPort": 27017,
+                        "port": 27017,
+                        "nodePort": ""
+                    }],
+                    "name": "mongodb-2",
+                    "type": "ClusterIP",
+                    "export": true
+                }],
+                "volumes": [{
+                    "storage": {
+                        "limit": "10Gi",
+                        "request": "10Gi"
+                    },
+                    "source": {},
+                    "name": "storage",
+                    "type": "Scratch"
+                }],
+                "pod": {
+                    "restart": "Always",
+                    "dns": "ClusterFirst",
+                    "termination": 30,
+                    "host": {
+                        "network": false,
+                        "pid": false,
+                        "ipc": false
+                    }
+                },
+                "controller": {
+                    "replica": 1
+                },
+                "type": "Deployment"
+            }]
+        }
+    }'
+  path: "mongodb"
+  services:
+  - service: mongodb-2
+    ports:
+    - port: 27017
+      protocol: TCP
+      config:
+        weight: 50
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 200m
+      memory: 200Mi
+
