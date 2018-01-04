@@ -2,11 +2,10 @@ package controller
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
-
-	log "github.com/zoumo/logdog"
 
 	"github.com/caicloud/canary-release/controller/config"
 	"github.com/caicloud/canary-release/pkg/api"
@@ -18,12 +17,14 @@ import (
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	controllerutil "github.com/caicloud/clientset/util/controller"
 	"github.com/caicloud/clientset/util/syncqueue"
+	log "github.com/zoumo/logdog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	corev1 "k8s.io/client-go/listers/core/v1"
 	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
 	"k8s.io/client-go/pkg/api/v1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
@@ -46,10 +47,11 @@ type CanaryReleaseController struct {
 	client kubernetes.Interface
 	// crdclient apiextensionsclient.Interface
 
-	factory  informers.SharedInformerFactory
-	crLister releaselisters.CanaryReleaseLister
-	rLister  releaselisters.ReleaseLister
-	dLister  extensionslisters.DeploymentLister
+	factory   informers.SharedInformerFactory
+	crLister  releaselisters.CanaryReleaseLister
+	rLister   releaselisters.ReleaseLister
+	dLister   extensionslisters.DeploymentLister
+	podLister corev1.PodLister
 
 	queue *syncqueue.SyncQueue
 }
@@ -61,6 +63,7 @@ func NewCanaryReleaseController(cfg config.Configuration) *CanaryReleaseControll
 	crinformer := factory.Release().V1alpha1().CanaryReleases()
 	rinformer := factory.Release().V1alpha1().Releases()
 	dinformer := factory.Extensions().V1beta1().Deployments()
+	podinformer := factory.Core().V1().Pods()
 
 	crc := &CanaryReleaseController{
 		proxyImage: cfg.Proxy.Image,
@@ -69,12 +72,19 @@ func NewCanaryReleaseController(cfg config.Configuration) *CanaryReleaseControll
 		crLister:   crinformer.Lister(),
 		rLister:    rinformer.Lister(),
 		dLister:    dinformer.Lister(),
+		podLister:  podinformer.Lister(),
 	}
 	crc.queue = syncqueue.NewPassthroughSyncQueue(&releaseapi.CanaryRelease{}, crc.syncCanaryRelease)
 	crinformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    crc.addCanaryRelease,
 		UpdateFunc: crc.updateCanaryRelease,
 		DeleteFunc: crc.deleteCanaryRelease,
+	})
+
+	podinformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    crc.addPod,
+		UpdateFunc: crc.updatePod,
+		DeleteFunc: crc.deletePod,
 	})
 
 	return crc
@@ -267,6 +277,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ex
 
 	var err error
 	updated := false
+	activeDeploy := desiredDeploy
 
 	for _, dp := range dps {
 		// two conditions will trigger controller to scale down deployment
@@ -280,6 +291,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ex
 		}
 
 		updated = true
+		activeDeploy = dp
 		// no need to update, let proxy do it
 	}
 
@@ -292,7 +304,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ex
 		}
 	}
 
-	return nil
+	return crc.syncStatus(cr, activeDeploy)
 }
 
 func (crc *CanaryReleaseController) addCanaryRelease(obj interface{}) {
@@ -316,6 +328,10 @@ func (crc *CanaryReleaseController) updateCanaryRelease(oldObj, curObj interface
 	if old.ResourceVersion == cur.ResourceVersion {
 		// Periodic resync will send update events for all known Objects.
 		// Two different versions of the same Objects will always have different RVs.
+		return
+	}
+
+	if reflect.DeepEqual(old.Spec, cur.Spec) {
 		return
 	}
 

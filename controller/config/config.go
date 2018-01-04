@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultProxy = "cargo.caicloudprivatetest.com/caicloud/canary-proxy-nginx:v0.1.1"
+	defaultProxy = "cargo.caicloudprivatetest.com/caicloud/canary-proxy-nginx:v0.1.0"
 )
 
 type Configuration struct {
