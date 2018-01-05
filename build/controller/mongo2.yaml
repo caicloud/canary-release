@@ -3,6 +3,8 @@ kind: CanaryRelease
 metadata:
   name: mongo2
   namespace: test
+  labels:
+    release.caicloud.io/release: mongodb-2
 spec:
   release: mongodb-2
   version: 2
