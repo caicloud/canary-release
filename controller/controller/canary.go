@@ -425,10 +425,9 @@ func (crc *CanaryReleaseController) generateDeployment(cr *releaseapi.CanaryRele
 					TerminationGracePeriodSeconds: &terminationGraPeridSeconds,
 					Containers: []v1.Container{
 						{
-							Name:            "canary-release-proxy",
-							Image:           crc.proxyImage,
-							ImagePullPolicy: v1.PullAlways,
-							Resources:       cr.Spec.Resources,
+							Name:      "canary-release-proxy",
+							Image:     crc.proxyImage,
+							Resources: cr.Spec.Resources,
 							Env: []v1.EnvVar{
 								{
 									Name:  "CANARY_RELEASE_NAME",
