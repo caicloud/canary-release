@@ -160,6 +160,20 @@ func (crc *CanaryReleaseController) syncStatus(cr *releaseapi.CanaryRelease, act
 			cr.Name,
 			func(cr *releaseapi.CanaryRelease) error {
 				cr.Status.Proxy = proxyStatus
+				statusErr := false
+				reason := ""
+				for _, status := range proxyStatus.PodStatuses {
+					if status.Phase == utilstatus.PodError {
+						statusErr = true
+						reason = status.Reason
+						break
+					}
+				}
+				if statusErr {
+					condition := api.NewCondition(api.ReasonError, fmt.Sprintf("proxy error: %v", reason))
+					cr.Status.Conditions = append(cr.Status.Conditions, condition)
+				}
+
 				return nil
 			},
 		)
