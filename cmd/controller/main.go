@@ -76,6 +76,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "canary-release"
 	app.Compiled = time.Now()
+	app.Version = version.Get().Version
 	app.Usage = "k8s canaryrelease resource controller"
 
 	// add flags to app

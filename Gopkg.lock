@@ -52,8 +52,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/caicloud/clientset"
-  packages = ["informers","informers/apiextensions","informers/apiextensions/v1beta1","informers/config","informers/config/v1alpha1","informers/release","informers/release/v1alpha1","kubernetes","kubernetes/scheme","kubernetes/typed/apiextensions/v1beta1","kubernetes/typed/config/v1alpha1","kubernetes/typed/release/v1alpha1","listers/apiextensions/v1beta1","listers/config/v1alpha1","listers/release/v1alpha1","pkg/apis/apiextensions/v1beta1","pkg/apis/config/v1alpha1","pkg/apis/release/v1alpha1","util/controller","util/syncqueue"]
-  revision = "2e0b00253cd4a7de87de8e27cccbb65785732217"
+  packages = ["informers","informers/apiextensions","informers/apiextensions/v1beta1","informers/config","informers/config/v1alpha1","informers/loadbalance","informers/loadbalance/v1alpha2","informers/release","informers/release/v1alpha1","informers/resource","informers/resource/v1alpha1","kubernetes","kubernetes/scheme","kubernetes/typed/apiextensions/v1beta1","kubernetes/typed/config/v1alpha1","kubernetes/typed/loadbalance/v1alpha2","kubernetes/typed/release/v1alpha1","kubernetes/typed/resource/v1alpha1","listers/apiextensions/v1beta1","listers/config/v1alpha1","listers/loadbalance/v1alpha2","listers/release/v1alpha1","listers/resource/v1alpha1","pkg/apis/apiextensions/v1beta1","pkg/apis/config/v1alpha1","pkg/apis/loadbalance/v1alpha2","pkg/apis/release/v1alpha1","pkg/apis/resource/v1alpha1","util/controller","util/status","util/syncqueue"]
+  revision = "f4524b81e86e0851459a4d1f1a96a486ecf0bc12"
 
 [[projects]]
   branch = "master"
@@ -352,6 +352,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e83aa1406bdc024a0de48060e8005dc945de5ec6c5e4751ebe2649c9d9d58d7c"
+  inputs-digest = "f58bbf4e68e9a4acc1d6e518090d13054cf37e1677ada63216cc820a1f32e260"
   solver-name = "gps-cdcl"
   solver-version = 1

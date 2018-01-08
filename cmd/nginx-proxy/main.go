@@ -90,6 +90,7 @@ func main() {
 	app.Name = "canaryrelease-proxy"
 	app.Compiled = time.Now()
 	app.Usage = "k8s canaryrelease proxy"
+	app.Version = version.Get().Version
 
 	// add flags to app
 	opts := NewOptions()

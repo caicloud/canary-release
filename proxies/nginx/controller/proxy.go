@@ -792,7 +792,14 @@ func (p *Proxy) cleanup(cr *releaseapi.CanaryRelease) error {
 
 func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	if cr.Status.Phase != releaseapi.CanaryTrasitionNone {
+		// transition finished
 		return nil
+	}
+
+	transition := cr.Spec.Transition
+	_, err := p.crLister.CanaryReleases(cr.Namespace).Get(cr.Name)
+	if errors.IsNotFound(err) && transition != releaseapi.CanaryTrasitionAdopted {
+		transition = releaseapi.CanaryTrasitionDeprecated
 	}
 
 	canaryOwner := renderOwnerReference(cr)
@@ -873,7 +880,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		return err
 	}
 
-	if cr.Spec.Transition == releaseapi.CanaryTrasitionAdopted {
+	if transition == releaseapi.CanaryTrasitionAdopted {
 		// apply change to release
 		// find related release
 		release, err := p.rLister.Releases(cr.Namespace).Get(cr.Spec.Release)
@@ -954,7 +961,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		// delete canaryServices
 		deleteSvcs(canaryService)
 
-	} else if cr.Spec.Transition == releaseapi.CanaryTrasitionDeprecated {
+	} else if transition == releaseapi.CanaryTrasitionDeprecated {
 
 		// maybe release has been deleted, the originalService will be empty
 		// use forked service cover original
