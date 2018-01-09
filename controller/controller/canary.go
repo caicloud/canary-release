@@ -81,6 +81,10 @@ func NewCanaryReleaseController(cfg config.Configuration) *CanaryReleaseControll
 		DeleteFunc: crc.deleteCanaryRelease,
 	})
 
+	rinformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: crc.deleteRelease,
+	})
+
 	podinformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    crc.addPod,
 		UpdateFunc: crc.updatePod,
@@ -217,9 +221,9 @@ func (crc *CanaryReleaseController) syncCanaryRelease(obj interface{}) error {
 	// find related release
 	release, err := crc.rLister.Releases(cr.Namespace).Get(cr.Spec.Release)
 	if errors.IsNotFound(err) {
-		// if release has been deleted, skip this canary release
-		log.Info("Release has been deleted, deprecate this CanaryRelease", log.Fields{"cr": key})
-		return crc.deprecate(cr)
+		// if release has been deleted, delete this canary release
+		log.Info("Release has been deleted, delete this CanaryRelease", log.Fields{"cr": key})
+		return crc.delete(cr)
 	}
 
 	if err != nil {
@@ -248,6 +252,10 @@ func (crc *CanaryReleaseController) deprecate(cr *releaseapi.CanaryRelease) erro
 	patch := fmt.Sprintf(`{"spec": {"transition": "%s"}}`, releaseapi.CanaryTrasitionDeprecated)
 	_, err := crc.client.ReleaseV1alpha1().CanaryReleases(cr.Namespace).Patch(cr.Name, types.MergePatchType, []byte(patch))
 	return err
+}
+
+func (crc *CanaryReleaseController) delete(cr *releaseapi.CanaryRelease) error {
+	return crc.client.ReleaseV1alpha1().CanaryReleases(cr.Namespace).Delete(cr.Name, &metav1.DeleteOptions{})
 }
 
 func (crc *CanaryReleaseController) cleanup(cr *releaseapi.CanaryRelease) error {
@@ -358,6 +366,33 @@ func (crc *CanaryReleaseController) deleteCanaryRelease(obj interface{}) {
 	log.Info("Deleting CanaryRelease", log.Fields{"cr.name": cr.Name, "cr.ns": cr.Namespace})
 
 	crc.queue.Enqueue(cr)
+}
+
+func (crc *CanaryReleaseController) deleteRelease(obj interface{}) {
+	release, ok := obj.(*releaseapi.Release)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		release, ok = tombstone.Obj.(*releaseapi.Release)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a CanaryRelease %#v", obj))
+			return
+		}
+	}
+
+	crs, err := crc.crLister.CanaryReleases(release.Namespace).List(labels.Everything())
+	if err != nil {
+		return
+	}
+
+	for _, cr := range crs {
+		if cr.Spec.Release == release.Name {
+			crc.queue.Enqueue(cr)
+		}
+	}
 }
 
 func (crc *CanaryReleaseController) getDeploymentsForCanaryRelease(cr *releaseapi.CanaryRelease) ([]*extensions.Deployment, error) {
