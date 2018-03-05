@@ -1,0 +1,3 @@
+[submodule "hack/make-rules"]
+	path = hack/make-rules
+	url = https://github.com/zoumo/make-rules
