@@ -73,6 +73,7 @@ func TestKeys(t *testing.T) {
 	tests := map[string]string{
 		`{{ dict "foo" 1 "bar" 2 | keys | sortAlpha }}`: "[bar foo]",
 		`{{ dict | keys }}`:                             "[]",
+		`{{ keys (dict "foo" 1) (dict "bar" 2) (dict "bar" 3) | uniq | sortAlpha }}`: "[bar foo]",
 	}
 	for tpl, expect := range tests {
 		if err := runt(tpl, expect); err != nil {
@@ -122,17 +123,6 @@ func TestSet(t *testing.T) {
 	expect := "123"
 	if err := runt(tpl, expect); err != nil {
 		t.Error(err)
-	}
-}
-
-func TestCompact(t *testing.T) {
-	tests := map[string]string{
-		`{{ list 1 0 "" "hello" | compact }}`: `[1 hello]`,
-		`{{ list "" "" | compact }}`:          `[]`,
-		`{{ list | compact }}`:                `[]`,
-	}
-	for tpl, expect := range tests {
-		assert.NoError(t, runt(tpl, expect))
 	}
 }
 

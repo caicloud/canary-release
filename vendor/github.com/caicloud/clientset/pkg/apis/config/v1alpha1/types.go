@@ -20,8 +20,9 @@ const (
 	Failure ConfigClaimStatusType = "Failure"
 )
 
-// +genclient=true
-// +genclientstatus=true
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConfigClaim describes a config sync status
 type ConfigClaim struct {
@@ -41,6 +42,8 @@ type ConfigClaimStatus struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ConfigClaimList describes an array of ConfigClaim instances
 type ConfigClaimList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -50,8 +53,9 @@ type ConfigClaimList struct {
 	Items []ConfigClaim `json:"items"`
 }
 
-// +genclient=true
-// +genclientstatus=true
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConfigReference describes the config reference list.
 type ConfigReference struct {
@@ -78,6 +82,8 @@ type Reference struct {
 	Keys       []string     `json:"keys,omitempty"`
 	Children   []*Reference `json:"children,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConfigReferenceList describes an array of ConfigReference instances.
 type ConfigReferenceList struct {

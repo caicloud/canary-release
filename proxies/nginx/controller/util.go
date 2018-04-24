@@ -6,9 +6,9 @@ import (
 
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	"github.com/golang/glog"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 )
 
@@ -20,15 +20,15 @@ type serviceCollection struct {
 	// original generated service
 	// origin service may be modified by canary controller
 	// so we need to generate it again
-	origin *v1.Service
+	origin *core.Service
 	// origin service in cluster
-	inCluster *v1.Service
+	inCluster *core.Service
 	// original generated service copy
 	// the only difference between forked service and originGenerated is name
-	forked *v1.Service
+	forked *core.Service
 	// canary release service
 	// canary service has different name too
-	canary *v1.Service
+	canary *core.Service
 	// canary service config
 	service releaseapi.CanaryService
 
@@ -92,13 +92,13 @@ func sysctlFSFileMax() int {
 }
 
 // protoPortKey generate key for protocol port
-func protoPortKey(protocol v1.Protocol, port int32) string {
+func protoPortKey(protocol core.Protocol, port int32) string {
 	return fmt.Sprintf("%s-%d", protocol, port)
 }
 
-func getService(objs []runtime.Object, svcName string) (*v1.Service, error) {
+func getService(objs []runtime.Object, svcName string) (*core.Service, error) {
 	for _, o := range objs {
-		svc, ok := o.(*v1.Service)
+		svc, ok := o.(*core.Service)
 		if !ok {
 			continue
 		}

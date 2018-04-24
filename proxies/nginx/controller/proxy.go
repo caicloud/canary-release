@@ -13,10 +13,11 @@ import (
 	releaselisters "github.com/caicloud/clientset/listers/release/v1alpha1"
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	"github.com/caicloud/clientset/util/syncqueue"
-	"github.com/caicloud/release-controller/pkg/kube"
-	"github.com/caicloud/release-controller/pkg/render"
+	"github.com/caicloud/rudder/pkg/kube"
+	"github.com/caicloud/rudder/pkg/render"
 	log "github.com/zoumo/logdog"
 
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,9 +26,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/scheme"
 	corelister "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -130,7 +129,7 @@ func NewProxy(cfg config.Configuration) *Proxy {
 				return cfg.Client.CoreV1().Services(namespace).Watch(options)
 			},
 		},
-		&v1.Service{},
+		&core.Service{},
 		0,
 		cache.ResourceEventHandlerFuncs{},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
@@ -636,9 +635,9 @@ func (p *Proxy) getUpsteamService(svcCol []*serviceCollection) ([]api.L4Service,
 
 		for _, port := range ports {
 			// HTTP HTTPS TCP are considered as TCP protocol
-			protocol := v1.ProtocolTCP
+			protocol := core.ProtocolTCP
 			if port.Protocol == releaseapi.ProtocolUDP {
-				protocol = v1.ProtocolUDP
+				protocol = core.ProtocolUDP
 			}
 
 			canaryWeight, originWeight := getWeight(port.Config.Weight)
@@ -665,7 +664,7 @@ func (p *Proxy) getUpsteamService(svcCol []*serviceCollection) ([]api.L4Service,
 				},
 			}
 
-			if protocol == v1.ProtocolTCP {
+			if protocol == core.ProtocolTCP {
 				tcpService = append(tcpService, upsteam)
 			} else {
 				udpService = append(udpService, upsteam)
@@ -808,8 +807,8 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	svcClient := p.cfg.Client.CoreV1().Services(cr.Namespace)
 
 	// get service from lister with suffix
-	getSvcs := func(suffix string) ([]*v1.Service, error) {
-		var svcs []*v1.Service
+	getSvcs := func(suffix string) ([]*core.Service, error) {
+		var svcs []*core.Service
 		for _, svc := range cr.Spec.Service {
 			name := svc.Service + suffix
 			original, err := p.svcLister.Services(p.namespace).Get(name)
@@ -825,7 +824,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	}
 
 	// delete services
-	deleteSvcs := func(svcs []*v1.Service) {
+	deleteSvcs := func(svcs []*core.Service) {
 		background := metav1.DeletePropagationBackground
 		for _, svc := range svcs {
 			err := svcClient.Delete(svc.Name, &metav1.DeleteOptions{
@@ -840,10 +839,10 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	// revocer service relate origin and target services whith name suffix
 	// use all fields in target service but original name and owner references
 	// to recover the origin service
-	recoverSvcs := func(origin, target []*v1.Service, suffix string, deleteOwner bool) {
+	recoverSvcs := func(origin, target []*core.Service, suffix string, deleteOwner bool) {
 		for _, o := range origin {
 
-			var fs *v1.Service
+			var fs *core.Service
 			for _, f := range target {
 				if f.Name == o.Name+suffix {
 					fs = f
@@ -855,8 +854,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 				continue
 			}
 			// deep copy target service
-			oc, _ := scheme.Scheme.DeepCopy(o)
-			o = oc.(*v1.Service)
+			o = o.DeepCopy()
 			if deleteOwner {
 				o.OwnerReferences = deleteOwnerIfExists(o.OwnerReferences, canaryOwner)
 			}

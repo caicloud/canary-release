@@ -12,10 +12,10 @@ import (
 	utilstatus "github.com/caicloud/clientset/util/status"
 	log "github.com/zoumo/logdog"
 
+	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/pkg/api/v1"
-	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -35,7 +35,7 @@ func (s SortPodStatusByName) Swap(i, j int) {
 }
 
 func (crc *CanaryReleaseController) addPod(obj interface{}) {
-	pod := obj.(*v1.Pod)
+	pod := obj.(*core.Pod)
 
 	if pod.DeletionTimestamp != nil {
 		// On a restart of the controller manager, it's possible for an object to
@@ -52,8 +52,8 @@ func (crc *CanaryReleaseController) addPod(obj interface{}) {
 	crc.queue.Enqueue(cr)
 }
 func (crc *CanaryReleaseController) updatePod(oldObj, curObj interface{}) {
-	old := oldObj.(*v1.Pod)
-	cur := curObj.(*v1.Pod)
+	old := oldObj.(*core.Pod)
+	cur := curObj.(*core.Pod)
 
 	if old.ResourceVersion == cur.ResourceVersion {
 		// Periodic resync will send update events for all known LoadBalancer.
@@ -77,7 +77,7 @@ func (crc *CanaryReleaseController) updatePod(oldObj, curObj interface{}) {
 }
 
 func (crc *CanaryReleaseController) deletePod(obj interface{}) {
-	pod, ok := obj.(*v1.Pod)
+	pod, ok := obj.(*core.Pod)
 
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -85,7 +85,7 @@ func (crc *CanaryReleaseController) deletePod(obj interface{}) {
 			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		pod, ok = tombstone.Obj.(*v1.Pod)
+		pod, ok = tombstone.Obj.(*core.Pod)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a LoadBalancer %#v", obj))
 			return
@@ -100,7 +100,7 @@ func (crc *CanaryReleaseController) deletePod(obj interface{}) {
 	crc.queue.Enqueue(cr)
 }
 
-func (crc *CanaryReleaseController) getCanaryReleaseForPod(pod *v1.Pod) *releaseapi.CanaryRelease {
+func (crc *CanaryReleaseController) getCanaryReleaseForPod(pod *core.Pod) *releaseapi.CanaryRelease {
 	v, ok := pod.Labels[api.LabelKeyCreatedBy]
 	if !ok {
 		return nil
@@ -124,7 +124,7 @@ func (crc *CanaryReleaseController) getCanaryReleaseForPod(pod *v1.Pod) *release
 	return cr
 }
 
-func (crc *CanaryReleaseController) syncStatus(cr *releaseapi.CanaryRelease, activeDeploy *extensions.Deployment) error {
+func (crc *CanaryReleaseController) syncStatus(cr *releaseapi.CanaryRelease, activeDeploy *apps.Deployment) error {
 	proxyStatus := releaseapi.CanaryReleaseProxyStatus{
 		Deployment:    activeDeploy.Name,
 		Replicas:      *activeDeploy.Spec.Replicas,

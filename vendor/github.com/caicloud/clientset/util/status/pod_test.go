@@ -6,7 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/api/core/v1"
 )
 
 func TestJudgePodStatus(t *testing.T) {
@@ -70,7 +70,7 @@ func TestJudgePodStatus(t *testing.T) {
 					},
 				},
 			},
-			PodStatus{Ready: false, ReadyContainers: 1, TotalContainers: 1, Phase: v1.PodRunning, Reason: "Terminating"},
+			PodStatus{Ready: false, ReadyContainers: 1, TotalContainers: 1, Phase: PodTerminating, Reason: "Terminating"},
 		},
 		{
 			"initializing",
@@ -151,6 +151,41 @@ func TestJudgePodStatus(t *testing.T) {
 				},
 			},
 			PodStatus{Ready: false, InitContainers: 1, ReadyContainers: 1, TotalContainers: 2, Phase: PodError, Reason: "Exit with 2"},
+		},
+		{
+			"CrashLoopBackOff",
+			&v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{{Name: "error"}},
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodRunning,
+					ContainerStatuses: []v1.ContainerStatus{
+						{
+							Ready: false,
+							State: v1.ContainerState{
+								Waiting: &v1.ContainerStateWaiting{
+									Reason:  "CrashLoopBackOff",
+									Message: "Back-off 5m0s restarting failed container=c0 pod=mysql-mysql-v1-0-3888019538-vs2qd_qaz(e8ba3f78-204f-11e8-b3ff-525400c2714a)",
+								},
+							},
+							LastTerminationState: v1.ContainerState{
+								Terminated: &v1.ContainerStateTerminated{
+									ExitCode: 137,
+									Reason:   "OOMKilled",
+								},
+							},
+							RestartCount: 6,
+						},
+					},
+				},
+			},
+			PodStatus{
+				Ready: false, ReadyContainers: 0, TotalContainers: 1, RestartCount: 6,
+				Phase:   PodError,
+				Reason:  "OOMKilled",
+				Message: "Back-off 5m0s restarting failed container=c0 pod=mysql-mysql-v1-0-3888019538-vs2qd_qaz(e8ba3f78-204f-11e8-b3ff-525400c2714a)",
+			},
 		},
 	}
 	for _, tt := range tests {

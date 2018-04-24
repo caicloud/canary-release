@@ -1,8 +1,8 @@
 package controller
 
-import extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+import apps "k8s.io/api/apps/v1"
 
-type sortByName []*extensions.Deployment
+type sortByName []*apps.Deployment
 
 func (s sortByName) Len() int {
 	return len(s)

@@ -143,6 +143,48 @@ var deleteTests = []DeleteTest{
 		path: []string{"b"},
 		data: `{"a":}`,
 	},
+	{
+		desc: "Delete object without inner array",
+		json: `{"a": {"b": 1}, "b": 2}`,
+		path: []string{"b"},
+		data: `{"a": {"b": 1}}`,
+	},
+	{
+		desc: "Delete object without inner array",
+		json: `{"a": [{"b": 1}], "b": 2}`,
+		path: []string{"b"},
+		data: `{"a": [{"b": 1}]}`,
+	},
+	{
+		desc: "Delete object without inner array",
+		json: `{"a": {"c": {"b": 3}, "b": 1}, "b": 2}`,
+		path: []string{"a", "b"},
+		data: `{"a": {"c": {"b": 3}}, "b": 2}`,
+	},
+	{
+		desc: "Delete object without inner array",
+		json: `{"a": [{"c": {"b": 3}, "b": 1}], "b": 2}`,
+		path: []string{"a", "[0]", "b"},
+		data: `{"a": [{"c": {"b": 3}}], "b": 2}`,
+	},
+	{
+		desc: "Remove trailing comma if last object is deleted",
+		json: `{"a": "1", "b": "2"}`,
+		path: []string{"b"},
+		data: `{"a": "1"}`,
+	},
+	{
+		desc: "Correctly delete first element with space-comma",
+		json: `{"a": "1" ,"b": "2" }`,
+		path: []string{"a"},
+		data: `{"b": "2" }`,
+	},
+	{
+		desc: "Correctly delete middle element with space-comma",
+		json: `{"a": "1" ,"b": "2" , "c": 3}`,
+		path: []string{"b"},
+		data: `{"a": "1" , "c": 3}`,
+	},
 }
 
 var setTests = []SetTest{
@@ -297,6 +339,46 @@ var setTests = []SetTest{
 		setData: `"d"`,
 		isFound: true,
 		data:    `{"a":"b":"d"}`,
+	},
+	{
+		desc:    "set indexed path to object on empty JSON",
+		json:    `{}`,
+		path:    []string{"top", "[0]", "middle", "[0]", "bottom"},
+		setData: `"value"`,
+		isFound: true,
+		data:    `{"top":[{"middle":[{"bottom":"value"}]}]}`,
+	},
+	{
+		desc:    "set indexed path on existing object with object",
+		json:    `{"top":[{"middle":[]}]}`,
+		path:    []string{"top", "[0]", "middle", "[0]", "bottom"},
+		setData: `"value"`,
+		isFound: true,
+		data:    `{"top":[{"middle":[{"bottom":"value"}]}]}`,
+	},
+	{
+		desc:    "set indexed path on existing object with value",
+		json:    `{"top":[{"middle":[]}]}`,
+		path:    []string{"top", "[0]", "middle", "[0]"},
+		setData: `"value"`,
+		isFound: true,
+		data:    `{"top":[{"middle":["value"]}]}`,
+	},
+	{
+		desc:    "set indexed path on empty object with value",
+		json:    `{}`,
+		path:    []string{"top", "[0]", "middle", "[0]"},
+		setData: `"value"`,
+		isFound: true,
+		data:    `{"top":[{"middle":["value"]}]}`,
+	},
+	{
+		desc:    "set indexed path on object with existing array",
+		json:    `{"top":["one", "two", "three"]}`,
+		path:    []string{"top", "[2]"},
+		setData: `"value"`,
+		isFound: true,
+		data:    `{"top":["one", "two", "value"]}`,
 	},
 }
 

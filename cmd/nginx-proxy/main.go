@@ -12,7 +12,7 @@ import (
 	"github.com/caicloud/canary-release/pkg/version"
 	proxyctl "github.com/caicloud/canary-release/proxies/nginx/controller"
 	"github.com/caicloud/clientset/kubernetes"
-	"github.com/caicloud/release-controller/pkg/kube"
+	"github.com/caicloud/rudder/pkg/kube"
 
 	log "github.com/zoumo/logdog"
 	"gopkg.in/urfave/cli.v1"

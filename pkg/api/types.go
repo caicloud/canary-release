@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/client-go/pkg/api/v1"
+	core "k8s.io/api/core/v1"
 )
 
 // L4Service describes a L4 service.
@@ -16,10 +16,10 @@ type L4Service struct {
 
 // L4Backend describes the kubernetes service behind L4 Ingress service
 type L4Backend struct {
-	Port      int32       `json:"port"`
-	Name      string      `json:"name"`
-	Namespace string      `json:"namespace"`
-	Protocol  v1.Protocol `json:"protocol"`
+	Port      int32         `json:"port"`
+	Name      string        `json:"name"`
+	Namespace string        `json:"namespace"`
+	Protocol  core.Protocol `json:"protocol"`
 }
 
 // Endpoint describes a endpoint in a backend

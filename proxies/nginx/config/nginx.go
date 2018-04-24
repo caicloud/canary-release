@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/caicloud/canary-release/pkg/api"
-	nginx "k8s.io/ingress/controllers/nginx/pkg/config"
+	nginx "github.com/caicloud/canary-release/third_party/ingress/controllers/nginx/pkg/config"
 )
 
 type TemplateConfig struct {
