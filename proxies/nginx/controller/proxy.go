@@ -699,7 +699,14 @@ func (p *Proxy) renderService(originObj, canaryObj []runtime.Object, cr *release
 		// fork origin service
 		// change it's name and add owner reference
 		copy := *s.origin
+		// change forked service name
 		copy.Name += forkedServiceSuffix
+		// reset nodePort, avoid conflict
+		if copy.Spec.Type == core.ServiceTypeNodePort {
+			for i := range copy.Spec.Ports {
+				copy.Spec.Ports[i].NodePort = 0
+			}
+		}
 		s.forked = &copy
 
 		// get in-cluster service
@@ -717,7 +724,12 @@ func (p *Proxy) renderService(originObj, canaryObj []runtime.Object, cr *release
 		}
 		// change canary service name
 		s.canary.Name += canaryServiceSuffix
-
+		// reset nodePort, avoid conflict
+		if s.canary.Spec.Type == core.ServiceTypeNodePort {
+			for i := range s.canary.Spec.Ports {
+				s.canary.Spec.Ports[i].NodePort = 0
+			}
+		}
 		services = append(services, s)
 	}
 
