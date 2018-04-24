@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/caicloud/clientset/kubernetes"
-	"github.com/caicloud/release-controller/pkg/kube"
+	"github.com/caicloud/rudder/pkg/kube"
 	"k8s.io/client-go/rest"
 
 	cli "gopkg.in/urfave/cli.v1"

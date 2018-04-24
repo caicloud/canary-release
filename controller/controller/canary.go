@@ -19,15 +19,15 @@ import (
 	"github.com/caicloud/clientset/util/syncqueue"
 	log "github.com/zoumo/logdog"
 
+	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	appsv1 "k8s.io/client-go/listers/apps/v1"
 	corev1 "k8s.io/client-go/listers/core/v1"
-	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
-	"k8s.io/client-go/pkg/api/v1"
-	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -50,7 +50,7 @@ type CanaryReleaseController struct {
 	factory   informers.SharedInformerFactory
 	crLister  releaselisters.CanaryReleaseLister
 	rLister   releaselisters.ReleaseLister
-	dLister   extensionslisters.DeploymentLister
+	dLister   appsv1.DeploymentLister
 	podLister corev1.PodLister
 
 	queue *syncqueue.SyncQueue
@@ -62,7 +62,7 @@ func NewCanaryReleaseController(cfg config.Configuration) *CanaryReleaseControll
 
 	crinformer := factory.Release().V1alpha1().CanaryReleases()
 	rinformer := factory.Release().V1alpha1().Releases()
-	dinformer := factory.Extensions().V1beta1().Deployments()
+	dinformer := factory.Apps().V1().Deployments()
 	podinformer := factory.Core().V1().Pods()
 
 	crc := &CanaryReleaseController{
@@ -267,7 +267,7 @@ func (crc *CanaryReleaseController) cleanup(cr *releaseapi.CanaryRelease) error 
 	policy := metav1.DeletePropagationBackground
 	gracePeriodSeconds := int64(60)
 	for _, d := range ds {
-		err = crc.client.ExtensionsV1beta1().Deployments(d.Namespace).Delete(d.Name, &metav1.DeleteOptions{
+		err = crc.client.AppsV1().Deployments(d.Namespace).Delete(d.Name, &metav1.DeleteOptions{
 			GracePeriodSeconds: &gracePeriodSeconds,
 			PropagationPolicy:  &policy,
 		})
@@ -280,7 +280,7 @@ func (crc *CanaryReleaseController) cleanup(cr *releaseapi.CanaryRelease) error 
 	return nil
 }
 
-func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*extensions.Deployment) error {
+func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*apps.Deployment) error {
 	desiredDeploy := crc.generateDeployment(cr)
 
 	var err error
@@ -294,7 +294,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ex
 		//    But we only need one.
 		if !strings.HasPrefix(dp.Name, cr.Name+proxyNameSuffix) || updated {
 			log.Warn("Delete unexpected proxy", log.Fields{"dp.name": dp.Name, "cr.name": cr.Name})
-			crc.client.ExtensionsV1beta1().Deployments(dp.Namespace).Delete(dp.Name, &metav1.DeleteOptions{})
+			crc.client.AppsV1().Deployments(dp.Namespace).Delete(dp.Name, &metav1.DeleteOptions{})
 			continue
 		}
 
@@ -306,7 +306,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ex
 	if !updated {
 		crc.addCondition(cr, api.NewCondition(api.ReasonCreating, ""))
 		log.Info("Create proxy for canary release", log.Fields{"dp.name": desiredDeploy.Name, "cr.name": cr.Name})
-		_, err = crc.client.ExtensionsV1beta1().Deployments(cr.Namespace).Create(desiredDeploy)
+		_, err = crc.client.AppsV1().Deployments(cr.Namespace).Create(desiredDeploy)
 		if err != nil {
 			return err
 		}
@@ -395,7 +395,7 @@ func (crc *CanaryReleaseController) deleteRelease(obj interface{}) {
 	}
 }
 
-func (crc *CanaryReleaseController) getDeploymentsForCanaryRelease(cr *releaseapi.CanaryRelease) ([]*extensions.Deployment, error) {
+func (crc *CanaryReleaseController) getDeploymentsForCanaryRelease(cr *releaseapi.CanaryRelease) ([]*apps.Deployment, error) {
 	// construct selector
 	selector := crc.selector(cr).AsSelector()
 
@@ -425,17 +425,17 @@ func (crc *CanaryReleaseController) getDeploymentsForCanaryRelease(cr *releaseap
 		// sort deployments
 		ret := sortByName(result)
 		sort.Sort(ret)
-		result = []*extensions.Deployment(ret)
+		result = []*apps.Deployment(ret)
 	}
 	return result, err
 }
 
-func (crc *CanaryReleaseController) generateDeployment(cr *releaseapi.CanaryRelease) *extensions.Deployment {
+func (crc *CanaryReleaseController) generateDeployment(cr *releaseapi.CanaryRelease) *apps.Deployment {
 	terminationGraPeridSeconds := int64(60)
 	labels := crc.selector(cr)
 	t := true
 	replicas := int32(1)
-	deploy := &extensions.Deployment{
+	deploy := &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   cr.Name + proxyNameSuffix,
 			Labels: labels,
@@ -450,20 +450,20 @@ func (crc *CanaryReleaseController) generateDeployment(cr *releaseapi.CanaryRele
 				},
 			},
 		},
-		Spec: extensions.DeploymentSpec{
+		Spec: apps.DeploymentSpec{
 			Replicas: &replicas,
-			Template: v1.PodTemplateSpec{
+			Template: core.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: v1.PodSpec{
+				Spec: core.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGraPeridSeconds,
-					Containers: []v1.Container{
+					Containers: []core.Container{
 						{
 							Name:      "canary-release-proxy",
 							Image:     crc.proxyImage,
 							Resources: cr.Spec.Resources,
-							Env: []v1.EnvVar{
+							Env: []core.EnvVar{
 								{
 									Name:  "CANARY_RELEASE_NAME",
 									Value: cr.Name,

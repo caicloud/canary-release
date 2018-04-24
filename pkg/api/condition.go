@@ -2,8 +2,8 @@ package api
 
 import (
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 const (
@@ -36,7 +36,7 @@ func NewCondition(reason, message string) releaseapi.CanaryReleaseCondition {
 
 	condition := releaseapi.CanaryReleaseCondition{
 		Type:               typ,
-		Status:             v1.ConditionTrue,
+		Status:             core.ConditionTrue,
 		LastTransitionTime: metav1.Now(),
 		Reason:             reason,
 		Message:            message,

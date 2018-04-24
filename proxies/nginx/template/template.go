@@ -12,9 +12,9 @@ import (
 	"github.com/caicloud/canary-release/proxies/nginx/config"
 	"github.com/golang/glog"
 	log "github.com/zoumo/logdog"
-	"k8s.io/ingress/core/pkg/watch"
+	"github.com/caicloud/canary-release/third_party/ingress/core/pkg/watch"
 
-	ingressConfig "k8s.io/ingress/controllers/nginx/pkg/config"
+	ingressConfig "github.com/caicloud/canary-release/third_party/ingress/controllers/nginx/pkg/config"
 )
 
 const (
