@@ -3,7 +3,7 @@ package status
 import (
 	"fmt"
 
-	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/api/core/v1"
 )
 
 const (
@@ -12,8 +12,12 @@ const (
 	// on the node it is (was) running.
 	// copy from k8s.io/kubernetes/pkg/util/node
 	NodeUnreachablePodReason = "NodeLost"
-	// PodInitializing means pod's initContainers are not finished
+	// PodInitializing means:
+	//   - some of pod's initContainers are not finished
+	//   - some of pod's containers are not running
 	PodInitializing v1.PodPhase = "Initializing"
+	// PodTerminating means that pod is in terminating
+	PodTerminating v1.PodPhase = "Terminating"
 	// PodError means that:
 	//   - When pod is initializing, at least one init container is terminated without code 0.
 	//   - When pod is terminating, at least one container is terminated without code 0.
@@ -35,6 +39,14 @@ type PodStatus struct {
 	Message         string      `json:"message,omitempty"`
 }
 
+type containerState string
+
+const (
+	containerWaiting    containerState = "waiting"
+	containerTerminated containerState = "terminated"
+	containerRunning    containerState = "running"
+)
+
 // JudgePodStatus judges the current status of pod from Pod.Status
 func JudgePodStatus(pod *v1.Pod) PodStatus {
 	if pod == nil {
@@ -46,10 +58,7 @@ func JudgePodStatus(pod *v1.Pod) PodStatus {
 	initContainers := len(pod.Spec.InitContainers)
 	totalContainers := len(pod.Spec.Containers)
 	phase := pod.Status.Phase
-	reason := string(pod.Status.Phase)
-	if pod.Status.Reason != "" {
-		reason = pod.Status.Reason
-	}
+	reason := chose(string(pod.Status.Phase), pod.Status.Reason)
 	message := ""
 
 	if phase == v1.PodPending {
@@ -106,38 +115,59 @@ func JudgePodStatus(pod *v1.Pod) PodStatus {
 			container := pod.Status.ContainerStatuses[i]
 			restarts += int(container.RestartCount)
 
-			if container.State.Waiting != nil && container.State.Waiting.Reason != "" {
-				reason = container.State.Waiting.Reason
-				message = container.State.Waiting.Message
-			} else if container.State.Terminated != nil {
+			state, stateReason, stateMessage := judgeContainerState(container.State)
+			reason = chose(reason, stateReason)
+			message = chose(message, stateMessage)
+			switch state {
+			case containerWaiting:
+				// when pod is in CrashLoopBackOff, the uesful information is stored in lastTerminationState
+				if reason == "CrashLoopBackOff" {
+					phase = PodError
+					lastState, lastReason, lastMessage := judgeContainerState(container.LastTerminationState)
+					if lastState == containerTerminated {
+						reason = chose(reason, lastReason)
+						message = chose(message, lastMessage)
+					}
+				}
+			case containerTerminated:
 				if container.State.Terminated.ExitCode != 0 {
+					// if container's exit code != 0, we think that pod is in error phase
 					phase = PodError
 				}
-				reason = fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode)
-				message = container.State.Terminated.Message
-
-				if container.State.Terminated.Signal != 0 {
-					reason = fmt.Sprintf("Signal:%d", container.State.Terminated.Signal)
+			case containerRunning:
+				if container.Ready {
+					readyContainers++
 				}
-				if container.State.Terminated.Reason != "" {
-					reason = container.State.Terminated.Reason
-				}
-			} else if container.Ready && container.State.Running != nil {
-				readyContainers++
 			}
 		}
 	}
 
+	// all containers are ready and container number > 0
+	// we think pod is ready
 	if readyContainers == totalContainers && readyContainers > 0 {
 		ready = true
 	}
 
-	if pod.DeletionTimestamp != nil {
+	if pod.DeletionTimestamp == nil {
+		// kubernetes tells us the pod is running, but we recognize
+		// that pod is not ready, and no other errors are found above
+		// we think the pod is Initializing
+		if phase == v1.PodRunning && !ready {
+			phase = PodInitializing
+		}
+	} else {
+		// DeletionTimestamp != nil means the pod may be in Terminating
+
+		// In this phase, pod is not ready
 		ready = false
 		if pod.Status.Reason == NodeUnreachablePodReason {
 			phase = v1.PodUnknown
 			reason = "Unknown"
 		} else {
+			if phase == v1.PodRunning {
+				// only if phase is Running, change phase to terminating
+				phase = PodTerminating
+			}
 			reason = "Terminating"
 		}
 	}
@@ -154,4 +184,32 @@ func JudgePodStatus(pod *v1.Pod) PodStatus {
 		Reason:          reason,
 		Message:         message,
 	}
+}
+
+func judgeContainerState(conaitnerState v1.ContainerState) (state containerState, reason, message string) {
+	if conaitnerState.Waiting != nil {
+		state = containerWaiting
+		reason = conaitnerState.Waiting.Reason
+		message = conaitnerState.Waiting.Message
+	} else if conaitnerState.Terminated != nil {
+		state = containerTerminated
+		reason = fmt.Sprintf("ExitCode:%d", conaitnerState.Terminated.ExitCode)
+		message = conaitnerState.Terminated.Message
+		if conaitnerState.Terminated.Signal != 0 {
+			reason = fmt.Sprintf("Signal:%d", conaitnerState.Terminated.Signal)
+		}
+		if conaitnerState.Terminated.Reason != "" {
+			reason = conaitnerState.Terminated.Reason
+		}
+	} else if conaitnerState.Running != nil {
+		state = containerRunning
+	}
+	return
+}
+
+func chose(origin, newOne string) string {
+	if newOne != "" {
+		return newOne
+	}
+	return origin
 }

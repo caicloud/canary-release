@@ -24,31 +24,19 @@
 [[constraint]]
   branch = "master"
   name = "github.com/zoumo/logdog"
-  
+
 [[constraint]]
-  name = "k8s.io/helm"
-  branch = "release-2.5"
-  source = "github.com/caicloud/helm"
+  branch = "release-1.10"
+  name = "github.com/caicloud/clientset"
+
+[[constraint]]
+  revision = "8611c35ab31c1c28aa903d33cf8b6e44a399b09e"
+  name = "gopkg.in/fsnotify.v1"
+  source = "github.com/fsnotify/fsnotify"
 
 [[override]]
   name = "gopkg.in/urfave/cli.v1"
   version = "1.20.0"
-
-# [[override]]
-#  branch = "release-1.7"
-#  name = "k8s.io/apiextensions-apiserver"
-
-# [[override]]
-#  branch = "release-1.7"
-#  name = "k8s.io/apiserver"
-
-[[override]]
-  version = "nginx-0.9.0-beta.11"
-  name = "k8s.io/ingress"
-
-[[override]]
-  version = "v4.0.0"
-  name = "k8s.io/client-go"
 
 [[override]]
   revision = "8c0409fcbb70099c748d71f714529204975f6c3f"

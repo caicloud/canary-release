@@ -1,12 +1,9 @@
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +17,14 @@ import (
 	"bytes"
 	"log"
 
+	apps "k8s.io/api/apps/v1"
+	batch "k8s.io/api/batch/v1"
+	batchv2 "k8s.io/api/batch/v1beta1"
+	app "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	app "k8s.io/client-go/pkg/api/v1"
-	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
-	batch "k8s.io/client-go/pkg/apis/batch/v1"
-	batchv2 "k8s.io/client-go/pkg/apis/batch/v2alpha1"
-	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
 
 // AnnotationKey is annotation key of kubernetes object
@@ -87,19 +83,15 @@ func InjectAnnotations(resource string, annos map[AnnotationKey]string) string {
 
 	// check and add annotations to the template of specific types
 	switch ins := obj.(type) {
-	case *extensions.Deployment:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
 	case *apps.Deployment:
 		{
 			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
 		}
-	case *extensions.DaemonSet:
+	case *apps.DaemonSet:
 		{
 			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
 		}
-	case *extensions.ReplicaSet:
+	case *apps.ReplicaSet:
 		{
 			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
 		}

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 )
 
 // Errors
@@ -52,6 +51,9 @@ func findTokenStart(data []byte, token byte) int {
 func findKeyStart(data []byte, key string) (int, error) {
 	i := 0
 	ln := len(data)
+	if ln > 0 && (data[0] == '{' || data[0] == '[') {
+		i = 1
+	}
 	var stackbuf [unescapeStackBufSize]byte // stack-allocated array for allocation-free unescaping of small strings
 
 	if ku, err := Unescape(StringToBytes(key), stackbuf[:]); err == nil {
@@ -94,6 +96,10 @@ func findKeyStart(data []byte, key string) (int, error) {
 				return keyBegin - 1, nil
 			}
 
+		case '[':
+			i = blockEnd(data[i:], data[i], ']') + i
+		case '{':
+			i = blockEnd(data[i:], data[i], '}') + i
 		}
 		i++
 	}
@@ -557,23 +563,42 @@ var (
 
 func createInsertComponent(keys []string, setValue []byte, comma, object bool) []byte {
 	var buffer bytes.Buffer
+	isIndex := string(keys[0][0]) == "["
 	if comma {
 		buffer.WriteString(",")
 	}
-	if object {
-		buffer.WriteString("{")
-	}
-	buffer.WriteString("\"")
-	buffer.WriteString(keys[0])
-	buffer.WriteString("\":")
-	for i := 1; i < len(keys); i++ {
-		buffer.WriteString("{\"")
-		buffer.WriteString(keys[i])
+	if isIndex {
+		buffer.WriteString("[")
+	} else {
+		if object {
+			buffer.WriteString("{")
+		}
+		buffer.WriteString("\"")
+		buffer.WriteString(keys[0])
 		buffer.WriteString("\":")
 	}
+
+	for i := 1; i < len(keys); i++ {
+		if string(keys[i][0]) == "[" {
+			buffer.WriteString("[")
+		} else {
+			buffer.WriteString("{\"")
+			buffer.WriteString(keys[i])
+			buffer.WriteString("\":")
+		}
+	}
 	buffer.Write(setValue)
-	buffer.WriteString(strings.Repeat("}", len(keys)-1))
-	if object {
+	for i := len(keys) - 1; i > 0; i-- {
+		if string(keys[i][0]) == "[" {
+			buffer.WriteString("]")
+		} else {
+			buffer.WriteString("}")
+		}
+	}
+	if isIndex {
+		buffer.WriteString("]")
+	}
+	if object && !isIndex {
 		buffer.WriteString("}")
 	}
 	return buffer.Bytes()
@@ -623,6 +648,8 @@ func Delete(data []byte, keys ...string) []byte {
 
 		if data[endOffset+tokEnd] == ","[0] {
 			endOffset += tokEnd + 1
+		} else if data[endOffset+tokEnd] == " "[0] && len(data) > endOffset+tokEnd+1 && data[endOffset+tokEnd+1] == ","[0] {
+			endOffset += tokEnd + 2
 		} else if data[endOffset+tokEnd] == "}"[0] && data[tokStart] == ","[0] {
 			keyOffset = tokStart
 		}
@@ -643,7 +670,18 @@ func Delete(data []byte, keys ...string) []byte {
 		}
 	}
 
-	data = append(data[:keyOffset], data[endOffset:]...)
+	// We need to remove remaining trailing comma if we delete las element in the object
+	prevTok := lastToken(data[:keyOffset])
+	remainedValue := data[endOffset:]
+
+	var newOffset int
+	if nextToken(remainedValue) > -1 && remainedValue[nextToken(remainedValue)] == '}' && data[prevTok] == ',' {
+		newOffset = prevTok
+	} else {
+		newOffset = prevTok + 1
+	}
+
+	data = append(data[:newOffset], data[endOffset:]...)
 	return data
 }
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !plan9
+// +build !plan9,!solaris
 
 // Package fsnotify provides a platform-independent interface for file system notifications.
 package fsnotify
@@ -30,33 +30,33 @@ const (
 	Chmod
 )
 
-func (op Op) String() string {
-	// Use a buffer for efficient string concatenation
-	var buffer bytes.Buffer
-
-	if op&Create == Create {
-		buffer.WriteString("|CREATE")
-	}
-	if op&Remove == Remove {
-		buffer.WriteString("|REMOVE")
-	}
-	if op&Write == Write {
-		buffer.WriteString("|WRITE")
-	}
-	if op&Rename == Rename {
-		buffer.WriteString("|RENAME")
-	}
-	if op&Chmod == Chmod {
-		buffer.WriteString("|CHMOD")
-	}
-	if buffer.Len() == 0 {
-		return ""
-	}
-	return buffer.String()[1:] // Strip leading pipe
-}
-
 // String returns a string representation of the event in the form
 // "file: REMOVE|WRITE|..."
 func (e Event) String() string {
-	return fmt.Sprintf("%q: %s", e.Name, e.Op.String())
+	// Use a buffer for efficient string concatenation
+	var buffer bytes.Buffer
+
+	if e.Op&Create == Create {
+		buffer.WriteString("|CREATE")
+	}
+	if e.Op&Remove == Remove {
+		buffer.WriteString("|REMOVE")
+	}
+	if e.Op&Write == Write {
+		buffer.WriteString("|WRITE")
+	}
+	if e.Op&Rename == Rename {
+		buffer.WriteString("|RENAME")
+	}
+	if e.Op&Chmod == Chmod {
+		buffer.WriteString("|CHMOD")
+	}
+
+	// If buffer remains empty, return no event names
+	if buffer.Len() == 0 {
+		return fmt.Sprintf("%q: ", e.Name)
+	}
+
+	// Return a list of event names, with leading pipe character stripped
+	return fmt.Sprintf("%q: %s", e.Name, buffer.String()[1:])
 }
