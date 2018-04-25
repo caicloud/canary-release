@@ -680,6 +680,7 @@ func (p *Proxy) getUpsteamService(svcCol []*serviceCollection) ([]api.L4Service,
 }
 
 // render all needed services
+// all generated services' type is ClusterIP
 func (p *Proxy) renderService(originObj, canaryObj []runtime.Object, cr *releaseapi.CanaryRelease) ([]*serviceCollection, error) {
 	services := make([]*serviceCollection, 0, len(cr.Spec.Service))
 	for _, svc := range cr.Spec.Service {
@@ -707,6 +708,8 @@ func (p *Proxy) renderService(originObj, canaryObj []runtime.Object, cr *release
 				copy.Spec.Ports[i].NodePort = 0
 			}
 		}
+		// change forked service type to ClusterIP
+		copy.Spec.Type = core.ServiceTypeClusterIP
 		s.forked = &copy
 
 		// get in-cluster service
@@ -730,6 +733,8 @@ func (p *Proxy) renderService(originObj, canaryObj []runtime.Object, cr *release
 				s.canary.Spec.Ports[i].NodePort = 0
 			}
 		}
+		// change canary service type to ClusterIP
+		s.canary.Spec.Type = core.ServiceTypeClusterIP
 		services = append(services, s)
 	}
 
