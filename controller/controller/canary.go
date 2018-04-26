@@ -452,6 +452,9 @@ func (crc *CanaryReleaseController) generateDeployment(cr *releaseapi.CanaryRele
 		},
 		Spec: apps.DeploymentSpec{
 			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
 			Template: core.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
