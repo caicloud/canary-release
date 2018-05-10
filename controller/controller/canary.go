@@ -198,7 +198,7 @@ func (crc *CanaryReleaseController) syncCanaryRelease(obj interface{}) error {
 	// fresh cr
 	if cr.UID != ncr.UID {
 		// original canary release is gone
-		return nil
+		return crc.cleanup(ncr)
 	}
 
 	// canary release
