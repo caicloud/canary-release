@@ -416,7 +416,7 @@ func (p *Proxy) syncCanaryRelease(obj interface{}) error {
 	}
 
 	if ncr.DeletionTimestamp != nil {
-		return nil
+		return p.cleanup(ncr)
 	}
 
 	// deep copy
