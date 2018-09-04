@@ -1,0 +1,26 @@
+_config:
+  _metadata:
+    description: canary-release-controller
+    name: canary-release-controller
+    namespace: kube-system
+    template:
+      type: template.caicloud.io/application
+      version: 1.0.0
+    version: "[[ imageTagFromGitTag ]]"
+  controllers:
+  - containers:
+    - args:
+      - --debug
+      - --proxy-image=[[ registry_release ]]/canary-nginx-proxy:[[ imageTagFromGitTag ]]
+      image: '[[ registry_release ]]/canary-controller:[[ imageTagFromGitTag ]]'
+      imagePullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: 300m
+          memory: 300Mi
+        requests:
+          cpu: 200m
+          memory: 200Mi
+    controller:
+      replica: 1
+    type: Deployment
