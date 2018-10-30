@@ -335,7 +335,9 @@ func (crc *CanaryReleaseController) updateCanaryRelease(oldObj, curObj interface
 		return
 	}
 
-	if reflect.DeepEqual(old.Spec, cur.Spec) {
+	// if status.Phase is changed to Adopted or Deprecated, we need to
+	// clean up the proxy
+	if reflect.DeepEqual(old.Spec, cur.Spec) && old.Status.Phase == cur.Status.Phase {
 		return
 	}
 
