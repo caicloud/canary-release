@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/caicloud/canary-release/pkg/api"
+	"github.com/caicloud/canary-release/pkg/util"
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	utilstatus "github.com/caicloud/clientset/util/status"
 	log "github.com/zoumo/logdog"
-
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -153,7 +153,7 @@ func (crc *CanaryReleaseController) syncStatus(cr *releaseapi.CanaryRelease, act
 
 	if !reflect.DeepEqual(cr.Status.Proxy, proxyStatus) {
 		log.Debug("update canary release proxy status", log.Fields{"cr.name": cr.Name, "cr.ns": cr.Namespace})
-		_, err := updateWithRetries(
+		_, err := util.UpdateCRWithRetries(
 			crc.client.ReleaseV1alpha1().CanaryReleases(cr.Namespace),
 			crc.crLister,
 			cr.Namespace,

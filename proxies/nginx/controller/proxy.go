@@ -16,7 +16,6 @@ import (
 	"github.com/caicloud/rudder/pkg/kube"
 	"github.com/caicloud/rudder/pkg/render"
 	log "github.com/zoumo/logdog"
-
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -420,10 +419,7 @@ func (p *Proxy) syncCanaryRelease(obj interface{}) error {
 	}
 
 	// deep copy
-	cr, err = api.CanaryReleaseDeepCopy(ncr)
-	if err != nil {
-		return err
-	}
+	cr = ncr.DeepCopy()
 
 	if cr.Spec.Transition != releaseapi.CanaryTrasitionNone {
 		log.Info("detected a adopted/deprecated Cananry Release, cleanup it", log.Fields{"cr": key})
