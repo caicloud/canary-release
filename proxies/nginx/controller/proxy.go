@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"github.com/caicloud/canary-release/pkg/api"
 	"github.com/caicloud/canary-release/pkg/chart"
 	"github.com/caicloud/canary-release/proxies/nginx/config"
@@ -15,8 +16,8 @@ import (
 	"github.com/caicloud/clientset/util/syncqueue"
 	"github.com/caicloud/rudder/pkg/kube"
 	"github.com/caicloud/rudder/pkg/render"
+	"github.com/ghodss/yaml"
 	log "github.com/zoumo/logdog"
-
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +34,9 @@ import (
 const (
 	forkedServiceSuffix = "-forked"
 	canaryServiceSuffix = "-canary"
+
+	canaryPodLabel = "canaryPodLabel"
+	canaryPodValue = "canary"
 )
 
 var (
@@ -502,6 +506,10 @@ func (p *Proxy) _sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release)
 		log.Info("manifest is not changed, skip this sync")
 		return nil
 	}
+
+	//add canary flag
+	addCanaryFlagToDeploymentRes(manifest)
+
 	err = p.cfg.ReleaseClient.Update(cr.Namespace, lastManifest, manifest, kube.UpdateOptions{
 		OwnerReferences: []metav1.OwnerReference{
 			canaryOwner,
@@ -598,6 +606,31 @@ func (p *Proxy) _sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release)
 	// set running config
 	p.runningConfig = &nginxConfig
 	return nil
+}
+
+func addCanaryFlagToDeploymentRes(manifest []string) {
+	for i, v := range manifest {
+		jsonString, err := yaml.YAMLToJSON([]byte(v))
+		if err != nil {
+			log.Info("yaml to json failed : %v\n", err)
+			continue
+		}
+		resourceKind, err := jsonparser.GetString([]byte(jsonString), "kind")
+		if err == nil && resourceKind == "Deployment" {
+			jsonString, err := jsonparser.Set([]byte(jsonString), []byte(canaryPodValue), "spec", "template", "metadata", "annotations", canaryPodLabel)
+			if err != nil {
+				log.Info("jsonparser set error : %v\n", err)
+				continue
+			}
+
+			yamlString, err := yaml.JSONToYAML(jsonString)
+			if err != nil {
+				log.Info("JSONToYAML error : %v\n", err)
+				continue
+			}
+			manifest[i] = string(yamlString)
+		}
+	}
 }
 
 func (p *Proxy) getUpsteamService(svcCol []*serviceCollection) ([]api.L4Service, []api.L4Service) {
