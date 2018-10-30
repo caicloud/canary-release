@@ -569,6 +569,7 @@ func (p *Proxy) _sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release)
 		}
 
 		// change target port
+
 		for i, port := range generated.Spec.Ports {
 			port.TargetPort = intstr.FromInt(int(col.protoPort2upstreamPort[protoPortKey(port.Protocol, port.Port)]))
 			generated.Spec.Ports[i] = port
@@ -581,10 +582,10 @@ func (p *Proxy) _sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release)
 
 		// add in cluster owner references (release controller) and generated owner referecens (canary release controller)
 		inCluster.OwnerReferences = appendOwnerIfNotExists(inCluster.OwnerReferences, canaryOwner)
-		inCluster.Spec.Ports = generated.Spec.Ports
+		patchTargetPort(inCluster.Spec.Ports, generated.Spec.Ports)
 		inCluster.Spec.Selector = generated.Spec.Selector
 
-		_, err := p.cfg.Client.CoreV1().Services(p.namespace).Update(inCluster)
+		_, err = p.cfg.Client.CoreV1().Services(p.namespace).Update(inCluster)
 		if err != nil {
 			log.Errorf("Error update original service %v, err: %v", generated.Name, err)
 			return err
@@ -871,7 +872,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 			if deleteOwner {
 				o.OwnerReferences = deleteOwnerIfExists(o.OwnerReferences, canaryOwner)
 			}
-			o.Spec.Ports = fs.Spec.Ports
+			patchTargetPort(o.Spec.Ports, fs.Spec.Ports)
 			o.Spec.Selector = fs.Spec.Selector
 			svcClient.Update(o)
 		}
@@ -993,4 +994,24 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	p.runningConfig = nil
 	p.exiting = true
 	return nil
+}
+
+func patchTargetPort(source, patch []core.ServicePort) {
+	for i, p := range source {
+		for _, pp := range patch {
+			if isSamePort(p, pp) {
+				source[i].TargetPort = pp.TargetPort
+				break
+			}
+		}
+	}
+}
+
+func isSamePort(s, p core.ServicePort) bool {
+	if len(s.Name) != 0 && len(p.Name) != 0 && s.Name == p.Name {
+		return true
+	} else if s.Protocol == p.Protocol && s.Port == p.Port {
+		return true
+	}
+	return false
 }
