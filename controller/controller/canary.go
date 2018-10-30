@@ -18,7 +18,6 @@ import (
 	controllerutil "github.com/caicloud/clientset/util/controller"
 	"github.com/caicloud/clientset/util/syncqueue"
 	log "github.com/zoumo/logdog"
-
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -206,10 +205,7 @@ func (crc *CanaryReleaseController) syncCanaryRelease(obj interface{}) error {
 		return nil
 	}
 
-	cr, err = api.CanaryReleaseDeepCopy(ncr)
-	if err != nil {
-		return err
-	}
+	cr = ncr.DeepCopy()
 
 	// only if the canary release status clearly point out it finished transition
 	// then we can cleanup it
@@ -339,7 +335,9 @@ func (crc *CanaryReleaseController) updateCanaryRelease(oldObj, curObj interface
 		return
 	}
 
-	if reflect.DeepEqual(old.Spec, cur.Spec) {
+	// if status.Phase is changed to Adopted or Deprecated, we need to
+	// clean up the proxy
+	if reflect.DeepEqual(old.Spec, cur.Spec) && old.Status.Phase == cur.Status.Phase {
 		return
 	}
 

@@ -3,7 +3,6 @@ package util
 import (
 	"time"
 
-	"github.com/caicloud/canary-release/pkg/api"
 	"github.com/caicloud/clientset/kubernetes/typed/release/v1alpha1"
 	releaselister "github.com/caicloud/clientset/listers/release/v1alpha1"
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
@@ -33,11 +32,7 @@ func UpdateCRWithRetries(crClient v1alpha1.CanaryReleaseInterface, crLister rele
 			return false, err
 		}
 
-		obj, deepCopyErr := api.CanaryReleaseDeepCopy(cr)
-		if deepCopyErr != nil {
-			return false, err
-		}
-		cr = obj
+		cr = cr.DeepCopy()
 
 		// apply the update, them attempte to push it to the apiserver
 		if applyErr := applyUpdate(cr); applyErr != nil {
