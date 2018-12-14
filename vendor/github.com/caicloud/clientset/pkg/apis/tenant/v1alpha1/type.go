@@ -22,6 +22,12 @@ const (
 
 	// SystemTenant defines name of system tenant
 	SystemTenant = "system-tenant"
+
+	// ResourceNvidiaGPU defines nvidia gpu
+	ResourceNvidiaGPU v1.ResourceName = "nvidia.com/gpu"
+
+	// ResourceRequestsNvidiaGPU  defines nvidia gpu requests
+	ResourceRequestsNvidiaGPU v1.ResourceName = "requests.nvidia.com/gpu"
 )
 
 var (
@@ -33,8 +39,9 @@ var (
 		"limits.memory",
 		"requests.cpu",
 		"requests.memory",
+		"requests.nvidia.com/gpu",
+		// Deprecated
 		"alpha.kubernetes.io/nvidia-gpu",
-		"nvidia.com/gpu",
 	}
 )
 
@@ -76,10 +83,18 @@ type TenantSpec struct {
 }
 
 type TenantStatus struct {
-	Phase      TenantPhase     `json:"phase"`
-	ActualUsed v1.ResourceList `json:"actualUsed"`
-	Used       v1.ResourceList `json:"used"`
-	Hard       v1.ResourceList `json:"hard"`
+	Phase      TenantPhase       `json:"phase"`
+	Conditions []TenantCondition `json:"conditions,omitempty"`
+	ActualUsed v1.ResourceList   `json:"actualUsed"`
+	Used       v1.ResourceList   `json:"used"`
+	Hard       v1.ResourceList   `json:"hard"`
+}
+
+type TenantCondition struct {
+	Type    ConditionType      `json:"type"`
+	Status  v1.ConditionStatus `json:"status"`
+	Reason  string             `json:"reason,omitempty"`
+	Message string             `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -189,20 +204,20 @@ const (
 )
 
 type PartitionCondition struct {
-	Type    PartitionConditionType `json:"type"`
-	Status  v1.ConditionStatus     `json:"status"`
-	Reason  string                 `json:"reason,omitempty"`
-	Message string                 `json:"message,omitempty"`
+	Type    ConditionType      `json:"type"`
+	Status  v1.ConditionStatus `json:"status"`
+	Reason  string             `json:"reason,omitempty"`
+	Message string             `json:"message,omitempty"`
 }
 
-type PartitionConditionType string
+type ConditionType string
 
 const (
 	// ExceedsQuota will be true if used resource exceeds quota
-	ExceedsQuota PartitionConditionType = "ExceedsQuota"
+	ExceedsQuota ConditionType = "ExceedsQuota"
 
 	// TerminatingTimeout will be true if terminating partition costs too long
-	TerminatingTimeout PartitionConditionType = "TerminatingTimeout"
+	TerminatingTimeout ConditionType = "TerminatingTimeout"
 )
 
 const (
