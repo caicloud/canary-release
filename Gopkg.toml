@@ -41,3 +41,8 @@
 [[override]]
   revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
   name = "github.com/ugorji/go"
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true

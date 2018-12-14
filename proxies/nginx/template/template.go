@@ -10,11 +10,10 @@ import (
 	textTemplate "text/template"
 
 	"github.com/caicloud/canary-release/proxies/nginx/config"
+	ingressConfig "github.com/caicloud/canary-release/third_party/ingress/controllers/nginx/pkg/config"
+	"github.com/caicloud/canary-release/third_party/ingress/core/pkg/watch"
 	"github.com/golang/glog"
 	log "github.com/zoumo/logdog"
-	"github.com/caicloud/canary-release/third_party/ingress/core/pkg/watch"
-
-	ingressConfig "github.com/caicloud/canary-release/third_party/ingress/controllers/nginx/pkg/config"
 )
 
 const (

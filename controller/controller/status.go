@@ -139,7 +139,7 @@ func (crc *CanaryReleaseController) syncStatus(cr *releaseapi.CanaryRelease, act
 	}
 
 	for _, pod := range podList {
-		status := utilstatus.JudgePodStatus(pod)
+		status := utilstatus.JudgePodStatus(pod, nil)
 		podStauts := convertPodStatus(status)
 		proxyStatus.TotalReplicas++
 		if podStauts.Ready {
@@ -201,7 +201,6 @@ func SplitNamespaceAndNameByDot(value string) (namespace, name string, err error
 
 func convertPodStatus(status utilstatus.PodStatus) releaseapi.PodStatus {
 	return releaseapi.PodStatus{
-		Name:            status.Name,
 		Ready:           status.Ready,
 		RestartCount:    status.RestartCount,
 		ReadyContainers: status.ReadyContainers,
