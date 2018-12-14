@@ -23,10 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caicloud/caicloud-kubernetes/pkg/api"
 	"github.com/pkg/errors"
-
-	extensions "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -40,7 +39,7 @@ func buildIngress() *extensions.Ingress {
 	return &extensions.Ingress{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      "foo",
-			Namespace: api.NamespaceDefault,
+			Namespace: meta_v1.NamespaceDefault,
 		},
 		Spec: extensions.IngressSpec{
 			Backend: &extensions.IngressBackend{
@@ -69,14 +68,14 @@ func buildIngress() *extensions.Ingress {
 type mockSecret struct {
 }
 
-func (m mockSecret) GetSecret(name string) (*api.Secret, error) {
+func (m mockSecret) GetSecret(name string) (*corev1.Secret, error) {
 	if name != "default/demo-secret" {
 		return nil, errors.Errorf("there is no secret with name %v", name)
 	}
 
-	return &api.Secret{
+	return &corev1.Secret{
 		ObjectMeta: meta_v1.ObjectMeta{
-			Namespace: api.NamespaceDefault,
+			Namespace: meta_v1.NamespaceDefault,
 			Name:      "demo-secret",
 		},
 		Data: map[string][]byte{"auth": []byte("foo:$apr1$OFG3Xybp$ckL0FHDAkoXYIlH9.cysT0")},
@@ -142,7 +141,7 @@ func TestIngressAuthWithoutSecret(t *testing.T) {
 	}
 }
 
-func dummySecretContent(t *testing.T) (string, string, *api.Secret) {
+func dummySecretContent(t *testing.T) (string, string, *corev1.Secret) {
 	dir, err := ioutil.TempDir("", fmt.Sprintf("%v", time.Now().Unix()))
 	if err != nil {
 		t.Error(err)

@@ -38,8 +38,9 @@ const (
 
 var (
 	// canaryKind contains the schema.GroupVersionKind for this controller type.
-	canaryKind  = releaseapi.SchemeGroupVersion.WithKind(api.CanaryReleaseKind)
-	releaseKind = releaseapi.SchemeGroupVersion.WithKind("Release")
+	canaryKind      = releaseapi.SchemeGroupVersion.WithKind(api.CanaryReleaseKind)
+	releaseKind     = releaseapi.SchemeGroupVersion.WithKind("Release")
+	applicationKind = orchestrationapi.SchemeGroupVersion.WithKind("Application")
 )
 
 // Proxy ...
@@ -125,10 +126,10 @@ func NewProxy(cfg config.Configuration) *Proxy {
 	appIndexer, p.appInformer = cache.NewIndexerInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return cfg.Client.ReleaseV1alpha1().Releases(namespace).List(options)
+				return cfg.Client.OrchestrationV1alpha1().Applications(namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return cfg.Client.ReleaseV1alpha1().Releases(namespace).Watch(options)
+				return cfg.Client.OrchestrationV1alpha1().Applications(namespace).Watch(options)
 			},
 		},
 		&orchestrationapi.Application{},
@@ -157,6 +158,7 @@ func NewProxy(cfg config.Configuration) *Proxy {
 	p.crLister = releaselisters.NewCanaryReleaseLister(crIndexer)
 	p.rLister = releaselisters.NewReleaseLister(rIndexer)
 	p.svcLister = corelister.NewServiceLister(svcIndexer)
+	p.appLister = orchestrationlisters.NewApplicationLister(appIndexer)
 
 	return p
 }
@@ -172,12 +174,14 @@ func (p *Proxy) Run(workers int) {
 	go p.crInformer.Run(p.stopCh)
 	go p.rInformer.Run(p.stopCh)
 	go p.svcInformer.Run(p.stopCh)
+	go p.appInformer.Run(p.stopCh)
 
 	log.Info("Wart for all caches synced")
 	if !cache.WaitForCacheSync(p.stopCh,
 		p.crInformer.HasSynced,
 		p.rInformer.HasSynced,
 		p.svcInformer.HasSynced,
+		p.appInformer.HasSynced,
 	) {
 		log.Error("wait for cache sync timeout")
 		return
@@ -837,6 +841,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	canaryOwner := renderOwnerReference(cr)
 	rClient := p.cfg.Client.ReleaseV1alpha1().Releases(cr.Namespace)
 	crClient := p.cfg.Client.ReleaseV1alpha1().CanaryReleases(cr.Namespace)
+	appClient := p.cfg.Client.OrchestrationV1alpha1().Applications(cr.Namespace)
 	svcClient := p.cfg.Client.CoreV1().Services(cr.Namespace)
 
 	// get service from lister with suffix
@@ -939,12 +944,32 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		if err != nil {
 			return err
 		}
-		// update release
-		release.Spec.Config = canaryConfig
+		controller := getControllerOf(release)
+		if controller == nil {
+			// update release
+			release.Spec.Config = canaryConfig
+			_, err = rClient.Update(release)
+			if err != nil {
+				return err
+			}
+		} else {
+			// update release config in application
+			app, err := p.appLister.Applications(cr.Namespace).Get(controller.Name)
+			if err != nil {
+				return err
+			}
 
-		_, err = rClient.Update(release)
-		if err != nil {
-			return err
+			app = app.DeepCopy()
+			for i, v := range app.Spec.Graph.Vertexes {
+				if v.Name == release.Name {
+					app.Spec.Graph.Vertexes[i].Spec.Config = canaryConfig
+					break
+				}
+			}
+			_, err = appClient.Update(app)
+			if err != nil {
+				return err
+			}
 		}
 
 		// wait for release updated
@@ -1033,4 +1058,15 @@ func isSamePort(s, p core.ServicePort) bool {
 		return true
 	}
 	return false
+}
+
+func getControllerOf(release *releaseapi.Release) *metav1.OwnerReference {
+	for i := range release.OwnerReferences {
+		owner := &release.OwnerReferences[i]
+		if owner.APIVersion == applicationKind.GroupVersion().String() &&
+			owner.Kind == applicationKind.Kind {
+			return owner
+		}
+	}
+	return nil
 }
