@@ -10,7 +10,9 @@ import (
 	"github.com/caicloud/canary-release/pkg/api"
 	"github.com/caicloud/canary-release/pkg/chart"
 	"github.com/caicloud/canary-release/proxies/nginx/config"
+	orchestrationlisters "github.com/caicloud/clientset/listers/orchestration/v1alpha1"
 	releaselisters "github.com/caicloud/clientset/listers/release/v1alpha1"
+	orchestrationapi "github.com/caicloud/clientset/pkg/apis/orchestration/v1alpha1"
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	"github.com/caicloud/clientset/util/syncqueue"
 	"github.com/caicloud/rudder/pkg/kube"
@@ -49,10 +51,12 @@ type Proxy struct {
 
 	crLister    releaselisters.CanaryReleaseLister
 	rLister     releaselisters.ReleaseLister
+	appLister   orchestrationlisters.ApplicationLister
 	svcLister   corelister.ServiceLister
 	crInformer  cache.Controller
 	rInformer   cache.Controller
 	svcInformer cache.Controller
+	appInformer cache.Controller
 
 	queue *syncqueue.SyncQueue
 
@@ -77,7 +81,7 @@ func NewProxy(cfg config.Configuration) *Proxy {
 	}
 
 	namespace := cfg.CanaryReleaseNamespace
-	var crIndexer, rIndexer, svcIndexer cache.Indexer
+	var crIndexer, rIndexer, svcIndexer, appIndexer cache.Indexer
 
 	// construct canary release informer
 	crIndexer, p.crInformer = cache.NewIndexerInformer(
@@ -115,6 +119,21 @@ func NewProxy(cfg config.Configuration) *Proxy {
 			UpdateFunc: p.updateRelease,
 			DeleteFunc: p.deleteRelease,
 		},
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+
+	appIndexer, p.appInformer = cache.NewIndexerInformer(
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return cfg.Client.ReleaseV1alpha1().Releases(namespace).List(options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return cfg.Client.ReleaseV1alpha1().Releases(namespace).Watch(options)
+			},
+		},
+		&orchestrationapi.Application{},
+		0,
+		cache.ResourceEventHandlerFuncs{},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
