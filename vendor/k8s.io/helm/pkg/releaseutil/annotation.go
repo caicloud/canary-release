@@ -1,9 +1,12 @@
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,9 +21,13 @@ import (
 	"log"
 
 	apps "k8s.io/api/apps/v1"
+	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	batch "k8s.io/api/batch/v1"
-	batchv2 "k8s.io/api/batch/v1beta1"
-	app "k8s.io/api/core/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
+	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
+	core "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -83,35 +90,49 @@ func InjectAnnotations(resource string, annos map[AnnotationKey]string) string {
 
 	// check and add annotations to the template of specific types
 	switch ins := obj.(type) {
+	// Deployment
 	case *apps.Deployment:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta1.Deployment:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta2.Deployment:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *extensionsv1beta1.Deployment:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	// DaemonSet
 	case *apps.DaemonSet:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta2.DaemonSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *extensionsv1beta1.DaemonSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	// ReplicaSet
 	case *apps.ReplicaSet:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta2.ReplicaSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *extensionsv1beta1.ReplicaSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	// StatefulSet
 	case *apps.StatefulSet:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta1.StatefulSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	case *appsv1beta2.StatefulSet:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	// Job
 	case *batch.Job:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
-	case *batchv2.CronJob:
-		{
-			ins.Spec.JobTemplate.Annotations = merge(ins.Spec.JobTemplate.Annotations, annos)
-			ins.Spec.JobTemplate.Spec.Template.Annotations = merge(ins.Spec.JobTemplate.Spec.Template.Annotations, annos)
-		}
-	case *app.ReplicationController:
-		{
-			ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
-		}
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
+	// CronJob
+	case *batchv1beta1.CronJob:
+		ins.Spec.JobTemplate.Annotations = merge(ins.Spec.JobTemplate.Annotations, annos)
+		ins.Spec.JobTemplate.Spec.Template.Annotations = merge(ins.Spec.JobTemplate.Spec.Template.Annotations, annos)
+	case *batchv2alpha1.CronJob:
+		ins.Spec.JobTemplate.Annotations = merge(ins.Spec.JobTemplate.Annotations, annos)
+		ins.Spec.JobTemplate.Spec.Template.Annotations = merge(ins.Spec.JobTemplate.Spec.Template.Annotations, annos)
+	// ReplicationController
+	case *core.ReplicationController:
+		ins.Spec.Template.Annotations = merge(ins.Spec.Template.Annotations, annos)
 	}
 
 	// encode object
