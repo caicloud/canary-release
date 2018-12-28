@@ -43,7 +43,7 @@
 
 [[projects]]
   branch = "release-1.10"
-  digest = "1:69ac0db26bd15fde1f9f13ac1e369b5474067817e7a215ee7cdc3dba79fb194d"
+  digest = "1:53d7562155708ba3a5cba30253cff32f6a4096cc1930bf6b44b4c9d91b44b58e"
   name = "github.com/caicloud/clientset"
   packages = [
     "informers",
@@ -65,6 +65,8 @@
     "informers/loadbalance/v1alpha2",
     "informers/logging",
     "informers/logging/v1alpha1",
+    "informers/microservice",
+    "informers/microservice/v1alpha1",
     "informers/model",
     "informers/model/v1alpha1",
     "informers/orchestration",
@@ -87,6 +89,7 @@
     "kubernetes/typed/devops/v1",
     "kubernetes/typed/loadbalance/v1alpha2",
     "kubernetes/typed/logging/v1alpha1",
+    "kubernetes/typed/microservice/v1alpha1",
     "kubernetes/typed/model/v1alpha1",
     "kubernetes/typed/orchestration/v1alpha1",
     "kubernetes/typed/release/v1alpha1",
@@ -102,6 +105,7 @@
     "listers/devops/v1",
     "listers/loadbalance/v1alpha2",
     "listers/logging/v1alpha1",
+    "listers/microservice/v1alpha1",
     "listers/model/v1alpha1",
     "listers/orchestration/v1alpha1",
     "listers/release/v1alpha1",
@@ -117,6 +121,7 @@
     "pkg/apis/devops/v1",
     "pkg/apis/loadbalance/v1alpha2",
     "pkg/apis/logging/v1alpha1",
+    "pkg/apis/microservice/v1alpha1",
     "pkg/apis/model/v1alpha1",
     "pkg/apis/orchestration/v1alpha1",
     "pkg/apis/release/v1alpha1",
@@ -129,10 +134,11 @@
     "util/syncqueue",
   ]
   pruneopts = "NUT"
-  revision = "926708aea9c7c669ba8888ac5de5bd490f580389"
+  revision = "4bf7635f1b044e201ce2f1fa480c5c60b4cf78a2"
 
 [[projects]]
-  digest = "1:17525c6e18d0d32f2bcd0756b575c27e32e648972140b1099730c59a8b14f845"
+  branch = "master"
+  digest = "1:f3fd69ff7c261d9c4b72fdc4d6e5c614dacda87bff59b991190f4c81e5ebd432"
   name = "github.com/caicloud/rudder"
   packages = [
     "pkg/kube",
@@ -140,8 +146,7 @@
     "pkg/render",
   ]
   pruneopts = "NUT"
-  revision = "57eb5a11bf7a455a99cda5647214e13d58fa2660"
-  version = "v0.2.0"
+  revision = "0b4e394581e2b0e6af9f7f121f8e53f0fef9fb41"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -703,8 +708,8 @@
   version = "v7.0.0"
 
 [[projects]]
-  branch = "release-2.5"
-  digest = "1:210aaccad54a66868153b3c8a6733dd102b49f5bcd5305f95fc476837a4de416"
+  branch = "pkg"
+  digest = "1:635dbf7694bb22c1eff722595ab2e81a9479e706f30d7c2020fd3a61e869fd98"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
@@ -718,7 +723,7 @@
     "pkg/timeconv",
   ]
   pruneopts = "NUT"
-  revision = "e78455b058e438e9f529c3b2132ec94b759b1dc1"
+  revision = "125c1afca403b373b98e24f3a98fe20f5a268723"
   source = "github.com/caicloud/helm"
 
 [[projects]]
