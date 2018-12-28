@@ -157,8 +157,9 @@ func (n *node) find(paths []string) (*node, error) {
 	if len(paths) <= 0 {
 		return nil, fmt.Errorf("there is no path in paths")
 	}
-	if n.path != paths[0] {
-		return nil, fmt.Errorf("paths have a diverse root node: %s", paths[0])
+	if len(paths) == 1 {
+		// we don't care about the root name
+		return n, nil
 	}
 	parent := n
 	for _, path := range paths[1:] {
@@ -261,6 +262,9 @@ type treeCarrier struct {
 // on the dependencies of nodes. If any error occurred, it will cancel all
 // processes and return an error.
 func (tc *treeCarrier) Run(ctx context.Context, order CarrierOrder, handler CarrierHandler) error {
+	if tc.root == nil {
+		return nil
+	}
 	switch order {
 	case PositiveOrder:
 		return tc.root.execPositively(ctx, handler, nil)
@@ -273,6 +277,9 @@ func (tc *treeCarrier) Run(ctx context.Context, order CarrierOrder, handler Carr
 
 // Resources returns all resources.
 func (tc *treeCarrier) Resources() []string {
+	if tc.root == nil {
+		return []string{}
+	}
 	resources := make([]string, 0, 10)
 	tc.root.walkthrough(func(n *node) bool {
 		if len(n.resources) > 0 {
@@ -287,6 +294,9 @@ func (tc *treeCarrier) Resources() []string {
 // If there is no node for target, it returns an error.
 func (tc *treeCarrier) ResourcesOf(target string) ([]string, error) {
 	paths := strings.Split(target, "/")
+	if tc.root == nil {
+		return nil, fmt.Errorf("no node for paths: %s", paths)
+	}
 	node, err := tc.root.find(paths)
 	if err != nil {
 		return nil, err
