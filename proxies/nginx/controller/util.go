@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/caicloud/canary-release/pkg/util"
 	releaseapi "github.com/caicloud/clientset/pkg/apis/release/v1alpha1"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 )
 
@@ -35,6 +37,11 @@ type serviceCollection struct {
 	// protoPort2upstreamPort contains the k8s service ports to nginx upstream ports map
 	// the key is protocol-port
 	protoPort2upstreamPort map[string]int32
+}
+
+type getAndrecoverSvcFunc struct {
+	GetSvc     func(suffix string) ([]*core.Service, error)
+	RecoverSvc func(origin, target []*core.Service, suffix string, deleteOwner bool) error
 }
 
 type sortByName []*serviceCollection
@@ -153,4 +160,42 @@ func deleteOwnerIfExists(old []metav1.OwnerReference, pending metav1.OwnerRefere
 		ret = append(ret, owner)
 	}
 	return ret
+}
+
+func getRelatedAndRecoverSvcs(suffix string, deleteOwner bool, fs getAndrecoverSvcFunc) ([]*core.Service, []*core.Service, []*core.Service, error) {
+	var recoverService []*core.Service
+	var originalService []*core.Service
+	var canaryService []*core.Service
+	var forkedService []*core.Service
+	var err error
+	retryErr := wait.ExponentialBackoff(util.DefaultRetry, func() (bool, error) {
+		originalService, err = fs.GetSvc("")
+		if err != nil {
+			return false, err
+		}
+		canaryService, err = fs.GetSvc(canaryServiceSuffix)
+		if err != nil {
+			return false, err
+		}
+		forkedService, err = fs.GetSvc(forkedServiceSuffix)
+		if err != nil {
+			return false, err
+		}
+		if suffix == canaryServiceSuffix {
+			recoverService = canaryService
+		} else if suffix == forkedServiceSuffix {
+			recoverService = forkedService
+		} else {
+			return false, fmt.Errorf("suffix should be `-forked` or `-canary`, but get %v", suffix)
+		}
+
+		err = fs.RecoverSvc(originalService, recoverService, suffix, deleteOwner)
+		if err == nil {
+			return true, nil
+		}
+		//retry
+		return false, nil
+	})
+
+	return originalService, canaryService, forkedService, retryErr
 }
