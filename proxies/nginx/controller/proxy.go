@@ -877,7 +877,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	// revocer service relate origin and target services whith name suffix
 	// use all fields in target service but original name and owner references
 	// to recover the origin service
-	recoverSvcs := func(origin, target []*core.Service, suffix string, deleteOwner bool) {
+	recoverSvcs := func(origin, target []*core.Service, suffix string, deleteOwner bool) error {
 		for _, o := range origin {
 
 			var fs *core.Service
@@ -898,22 +898,12 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 			}
 			patchTargetPort(o.Spec.Ports, fs.Spec.Ports)
 			o.Spec.Selector = fs.Spec.Selector
-			svcClient.Update(o)
+			_, err := svcClient.Update(o)
+			if err != nil {
+				return err
+			}
 		}
-	}
-
-	// if release has been deleted, original service will be empty
-	originalService, err := getSvcs("")
-	if err != nil {
-		return err
-	}
-	forkedService, err := getSvcs(forkedServiceSuffix)
-	if err != nil {
-		return err
-	}
-	canaryService, err := getSvcs(canaryServiceSuffix)
-	if err != nil {
-		return err
+		return nil
 	}
 
 	if transition == releaseapi.CanaryTrasitionAdopted {
@@ -937,7 +927,10 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 
 		// use canary service cover original
 		// origin service has two owner now
-		recoverSvcs(originalService, canaryService, canaryServiceSuffix, false)
+		originalService, canaryService, forkedService, err := getRelatedAndRecoverSvcs(canaryServiceSuffix, false, getAndrecoverSvcFunc{getSvcs, recoverSvcs})
+		if err != nil {
+			return err
+		}
 
 		// generate new config
 		canaryConfig, err := chart.ReplaceConfig(release.Spec.Config, cr.Spec.Path, cr.Spec.Config)
@@ -1021,10 +1014,10 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 
 		// maybe release has been deleted, the originalService will be empty
 		// use forked service cover original
-		recoverSvcs(originalService, forkedService, forkedServiceSuffix, true)
+		_, _, forkedService, err := getRelatedAndRecoverSvcs(forkedServiceSuffix, true, getAndrecoverSvcFunc{getSvcs, recoverSvcs})
 
 		// delete manifest
-		err := p.cfg.ReleaseClient.Delete(p.namespace, render.SplitManifest(cr.Status.Manifest), kube.DeleteOptions{})
+		err = p.cfg.ReleaseClient.Delete(p.namespace, render.SplitManifest(cr.Status.Manifest), kube.DeleteOptions{})
 		if err != nil {
 			log.Errorf("Error delete manifest from canary release, %v", err)
 		}
