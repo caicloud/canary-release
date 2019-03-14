@@ -9,7 +9,7 @@ import (
 )
 
 // ReplaceConfig replaces orginal config with value in the key of given path.
-func ReplaceConfig(origin, path, newValue string) (string, error) {
+func ReplaceConfig(origin, path, newValue, suffix string) (string, error) {
 	paths := strings.Split(path, "/")
 	if len(paths) == 0 {
 		return "", fmt.Errorf("path is empty")
@@ -46,7 +46,7 @@ func ReplaceConfig(origin, path, newValue string) (string, error) {
 		}
 		if controllerName != "" && nerr == nil {
 			// quoted by ""
-			newName := fmt.Sprintf("\"%s-v%d\"", controllerName, revision)
+			newName := fmt.Sprintf("\"%s\"", rebuildControllerName(controllerName, suffix))
 			newConfig, nerr = jsonparser.Set(newConfig, []byte(newName), "controllers", "[0]", "controller", "name")
 			if nerr != nil {
 				return "", nerr
@@ -55,4 +55,17 @@ func ReplaceConfig(origin, path, newValue string) (string, error) {
 		result, err = jsonparser.Set([]byte(origin), newConfig, paths...)
 	}
 	return string(result), err
+}
+
+func rebuildControllerName(name, suffix string) string {
+	slice := strings.Split(name, "-")
+	if len(slice) == 1 {
+		return fmt.Sprintf("%s-%s", name, suffix)
+	}
+	existed := slice[len(slice)-1]
+	if len(existed) != len(suffix) {
+		return fmt.Sprintf("%s-%s", name, suffix)
+	}
+	slice[len(slice)-1] = suffix
+	return strings.Join(slice, "-")
 }
