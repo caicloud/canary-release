@@ -38,6 +38,20 @@ func ReplaceConfig(origin, path, newValue string) (string, error) {
 		if nerr != nil {
 			return "", nerr
 		}
+
+		// change controller name if exists
+		controllerName, nerr := jsonparser.GetString(newConfig, "controllers", "[0]", "controller", "name")
+		if nerr != nil && nerr != jsonparser.KeyPathNotFoundError {
+			return "", nerr
+		}
+		if controllerName != "" && nerr == nil {
+			// quoted by ""
+			newName := fmt.Sprintf("\"%s-v%d\"", controllerName, revision)
+			newConfig, nerr = jsonparser.Set(newConfig, []byte(newName), "controllers", "[0]", "controller", "name")
+			if nerr != nil {
+				return "", nerr
+			}
+		}
 		result, err = jsonparser.Set([]byte(origin), newConfig, paths...)
 	}
 	return string(result), err
