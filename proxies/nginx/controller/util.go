@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"syscall"
 
 	"github.com/caicloud/canary-release/pkg/util"
@@ -198,4 +199,12 @@ func getRelatedAndRecoverSvcs(suffix string, deleteOwner bool, fs getAndrecoverS
 	})
 
 	return originalService, canaryService, forkedService, retryErr
+}
+
+func getCanarySuffix(name string) string {
+	slice := strings.Split(name, "-")
+	if len(slice) == 1 {
+		return ""
+	}
+	return slice[len(slice)-1]
 }

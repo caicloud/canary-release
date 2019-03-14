@@ -783,7 +783,11 @@ func (p *Proxy) renderRelease(release *releaseapi.Release, cr *releaseapi.Canary
 
 // render objects from release's template and canary config
 func (p *Proxy) renderCanaryRelease(release *releaseapi.Release, cr *releaseapi.CanaryRelease) ([]runtime.Object, error) {
-	canaryConfig, err := chart.ReplaceConfig(release.Spec.Config, cr.Spec.Path, cr.Spec.Config)
+	suffix := getCanarySuffix(cr.Name)
+	if suffix == "" {
+		return nil, fmt.Errorf("Error to split canary release suffix from %v", cr.Name)
+	}
+	canaryConfig, err := chart.ReplaceConfig(release.Spec.Config, cr.Spec.Path, cr.Spec.Config, suffix)
 	if err != nil {
 		return nil, err
 	}
@@ -933,7 +937,11 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		}
 
 		// generate new config
-		canaryConfig, err := chart.ReplaceConfig(release.Spec.Config, cr.Spec.Path, cr.Spec.Config)
+		suffix := getCanarySuffix(cr.Name)
+		if suffix == "" {
+			return fmt.Errorf("Error to split canary release suffix from %v", cr.Name)
+		}
+		canaryConfig, err := chart.ReplaceConfig(release.Spec.Config, cr.Spec.Path, cr.Spec.Config, suffix)
 		if err != nil {
 			return err
 		}
