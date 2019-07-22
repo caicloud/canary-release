@@ -58,6 +58,10 @@ func ReplaceConfig(origin, path, newValue, suffix string) (string, error) {
 }
 
 func rebuildControllerName(name, suffix string) string {
+	if suffix == "" {
+		return name
+	}
+
 	slice := strings.Split(name, "-")
 	if len(slice) == 1 {
 		return fmt.Sprintf("%s-%s", name, suffix)
