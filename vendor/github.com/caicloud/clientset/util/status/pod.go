@@ -18,8 +18,8 @@ func judgePod(pod *v1.Pod) PodStatus {
 	initContainers := len(pod.Spec.InitContainers)
 	totalContainers := len(pod.Spec.Containers)
 	phase := pod.Status.Phase
-	reason := chose(string(pod.Status.Phase), pod.Status.Reason)
-	message := pod.Status.Message
+	reason := choseReason(string(pod.Status.Phase), pod.Status.Reason)
+	message := ""
 
 	if phase == v1.PodPending {
 		// detect pending error
@@ -32,6 +32,22 @@ func judgePod(pod *v1.Pod) PodStatus {
 				phase = PodError
 				reason = condition.Reason
 				message = condition.Message
+			}
+		}
+		// use v1.PodScheduled error first
+		if phase != PodError {
+			// detect pending error from ContainerStatuses
+			for i := range pod.Status.ContainerStatuses {
+				cs := pod.Status.ContainerStatuses[i]
+				if cs.State.Waiting != nil {
+					w := cs.State.Waiting
+					// CreateContainerConfigError error
+					if w.Reason == "CreateContainerConfigError" {
+						phase = PodError
+						reason = w.Reason
+						message = w.Message
+					}
+				}
 			}
 		}
 	}
@@ -76,7 +92,7 @@ func judgePod(pod *v1.Pod) PodStatus {
 			restarts += int(container.RestartCount)
 
 			state, stateReason, stateMessage := judgeContainerState(container.State)
-			reason = chose(reason, stateReason)
+			reason = choseReason(reason, stateReason)
 			message = chose(message, stateMessage)
 			switch state {
 			case containerWaiting:
@@ -89,7 +105,7 @@ func judgePod(pod *v1.Pod) PodStatus {
 					phase = PodError
 					lastState, lastReason, lastMessage := judgeContainerState(container.LastTerminationState)
 					if lastState == containerTerminated {
-						reason = chose(reason, lastReason)
+						reason = choseReason(reason, lastReason)
 						message = chose(message, lastMessage)
 					}
 				}
@@ -127,7 +143,7 @@ func judgePod(pod *v1.Pod) PodStatus {
 		if pod.Status.Reason == NodeUnreachablePodReason {
 			phase = v1.PodUnknown
 		} else {
-			if phase == v1.PodRunning {
+			if phase == v1.PodRunning || phase == v1.PodPending {
 				// only if phase is Running, change phase to terminating
 				phase = PodTerminating
 			}
@@ -172,5 +188,17 @@ func chose(origin, newOne string) string {
 	if newOne != "" {
 		return newOne
 	}
+	return origin
+}
+
+func choseReason(origin, newOne string) string {
+	if origin == "" {
+		return newOne
+	}
+
+	if newOne != "" && newOne != "Error" {
+		return newOne
+	}
+
 	return origin
 }

@@ -48,6 +48,20 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SnapshotList{},
 		&RequirementGap{},
 		&RequirementGapList{},
+		&NodeLocalStorage{},
+		&NodeLocalStorageList{},
+		&InfraNetwork{},
+		&InfraNetworkList{},
+		&Network{},
+		&NetworkList{},
+		&WorkloadNetwork{},
+		&WorkloadNetworkList{},
+		&ResourceClass{},
+		&ResourceClassList{},
+		&ExtendedResource{},
+		&ExtendedResourceList{},
+		&NodeClaim{},
+		&NodeClaimList{},
 	)
 
 	// Add common types
