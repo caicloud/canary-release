@@ -3,13 +3,12 @@ package config
 import (
 	"github.com/caicloud/clientset/kubernetes"
 	"github.com/caicloud/rudder/pkg/kube"
-	"k8s.io/client-go/rest"
 
 	cli "gopkg.in/urfave/cli.v1"
 )
 
 type Configuration struct {
-	config                 *rest.Config
+	// config                 *rest.Config
 	Client                 kubernetes.Interface
 	ReleaseClient          kube.Client
 	ReleaseClientPool      kube.ClientPool

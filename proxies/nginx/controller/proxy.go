@@ -212,7 +212,7 @@ func (p *Proxy) Stop() error {
 	// stop queue
 	p.queue.ShutDown()
 	// stop nginx
-	p.nginx.Stop()
+	_ = p.nginx.Stop()
 	return nil
 }
 
@@ -376,7 +376,7 @@ func (p *Proxy) deprecate(cr *releaseapi.CanaryRelease) error {
 
 func (p *Proxy) waitForCleanup() {
 	// wait 20 seconds for proxy to cleanup
-	wait.PollInfinite(1*time.Second, func() (bool, error) {
+	_ = wait.PollInfinite(1*time.Second, func() (bool, error) {
 		if p.exiting {
 			return true, nil
 		}
@@ -472,12 +472,12 @@ func (p *Proxy) syncCanaryRelease(obj interface{}) error {
 }
 
 func (p *Proxy) sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release) error {
-	p.addCondition(cr, api.NewCondition(api.ReasonUpdating, ""))
+	_ = p.addCondition(cr, api.NewCondition(api.ReasonUpdating, ""))
 	err := p._sync(cr, release)
 	if err != nil {
-		p.addCondition(cr, api.NewConditionFrom(err))
+		_ = p.addCondition(cr, api.NewConditionFrom(err))
 	} else {
-		p.addCondition(cr, api.NewCondition(api.ReasonAvailable, ""))
+		_ = p.addCondition(cr, api.NewCondition(api.ReasonAvailable, ""))
 	}
 	return err
 }
@@ -546,7 +546,7 @@ func (p *Proxy) _sync(cr *releaseapi.CanaryRelease, release *releaseapi.Release)
 	}
 
 	// Step 4
-	// get tcp and udp upsteam
+	// get tcp and udp upstream
 	nginxConfig := config.NewDefaultTemplateConfig()
 	nginxConfig.TCPBackends, nginxConfig.UDPBackends = p.getUpsteamService(svcCol)
 
@@ -823,9 +823,9 @@ func (p *Proxy) renderCanaryRelease(release *releaseapi.Release, cr *releaseapi.
 func (p *Proxy) cleanup(cr *releaseapi.CanaryRelease) error {
 	err := p._cleanup(cr)
 	if err != nil {
-		p.addErrorCondition(cr, err)
+		_ = p.addErrorCondition(cr, err)
 	} else {
-		p.addCondition(cr, api.NewCondition(string(cr.Spec.Transition), ""))
+		_ = p.addCondition(cr, api.NewCondition(string(cr.Spec.Transition), ""))
 	}
 	return err
 }
@@ -878,7 +878,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		}
 	}
 
-	// revocer service relate origin and target services whith name suffix
+	// recover service relate origin and target services with name suffix
 	// use all fields in target service but original name and owner references
 	// to recover the origin service
 	recoverSvcs := func(origin, target []*core.Service, suffix string, deleteOwner bool) error {
@@ -974,7 +974,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		}
 
 		// wait for release updated
-		wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+		_ = wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
 			r, err := p.cfg.Client.ReleaseV1alpha1().Releases(release.Namespace).Get(release.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, nil
@@ -989,6 +989,9 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		owner := renderReleaseOwnerReference(release)
 		ownerPatch := []byte(fmt.Sprintf(`{"metadata":{"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s"}]}}`, owner.APIVersion, owner.Kind, owner.Name, owner.UID))
 		objs, accessors, err := p.codec.AccessorsForResources(render.SplitManifest(cr.Status.Manifest))
+		if err != nil {
+			return err
+		}
 		for i, obj := range objs {
 			accessor := accessors[i]
 			gvk := obj.GetObjectKind().GroupVersionKind()
@@ -1010,7 +1013,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		// reset owner
 		for _, svc := range originalService {
 			// reset the owner reference to let release controller take over these services
-			svcClient.Patch(svc.Name, types.MergePatchType, ownerPatch)
+			_, _ = svcClient.Patch(svc.Name, types.MergePatchType, ownerPatch)
 		}
 
 		// delete forkedServices
@@ -1023,6 +1026,9 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 		// maybe release has been deleted, the originalService will be empty
 		// use forked service cover original
 		_, _, forkedService, err := getRelatedAndRecoverSvcs(forkedServiceSuffix, true, getAndrecoverSvcFunc{getSvcs, recoverSvcs})
+		if err != nil {
+			log.Errorf("Error get related and recover services, %v", err)
+		}
 
 		// delete manifest
 		err = p.cfg.ReleaseClient.Delete(p.namespace, render.SplitManifest(cr.Status.Manifest), kube.DeleteOptions{})
@@ -1035,7 +1041,7 @@ func (p *Proxy) _cleanup(cr *releaseapi.CanaryRelease) error {
 	}
 
 	patch := fmt.Sprintf(`{"status":{"manifest":null,"phase":"%s"}}`, cr.Spec.Transition)
-	crClient.Patch(cr.Name, types.MergePatchType, []byte(patch))
+	_, _ = crClient.Patch(cr.Name, types.MergePatchType, []byte(patch))
 	p.runningConfig = nil
 	p.exiting = true
 	return nil

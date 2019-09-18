@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	slash         = "/"
+	// slash         = "/"
 	defBufferSize = 65535
 )
 
@@ -84,7 +84,7 @@ func NewTemplate(file string, onChange func()) (*Template, error) {
 
 // Close removes the file watcher
 func (t *Template) Close() {
-	t.fw.Close()
+	_ = t.fw.Close()
 }
 
 // Write populates a buffer using a template with NGINX configuration
