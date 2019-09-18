@@ -793,7 +793,7 @@ func (p *Proxy) renderCanaryRelease(release *releaseapi.Release, cr *releaseapi.
 	}
 
 	r := render.NewRender()
-	carry, err := r.Render(&render.RenderOptions{
+	carry, err := r.Render(&render.Options{
 		Namespace: release.Namespace,
 		Release:   release.Name,
 		Version:   release.Status.Version,
