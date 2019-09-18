@@ -26,7 +26,7 @@
   name = "github.com/zoumo/logdog"
 
 [[constraint]]
-  branch = "release-1.10"
+  branch = "release-1.14"
   name = "github.com/caicloud/clientset"
 
 [[constraint]]
@@ -46,6 +46,22 @@
 [[override]]
   revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
   name = "github.com/ugorji/go"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
+
+[[constraint]]
+  name = "k8s.io/kubernetes"
+  version = "=v1.14.2"
+
+[[override]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.14.2"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.14.2"
 
 [prune]
   non-go = true
