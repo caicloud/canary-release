@@ -86,15 +86,15 @@ NGINX master process died (%v): %v
 -------------------------------------------------------------------------------
 `, waitStatus.ExitStatus(), err)
 		}
-		cmd.Process.Release()
+		_ = cmd.Process.Release()
 		cmd = exec.Command(n.binary, "-c", cfgPath)
 
-		wait.PollInfinite(1*time.Second, func() (bool, error) {
+		_ = wait.PollInfinite(1*time.Second, func() (bool, error) {
 			conn, err := net.DialTimeout("tcp", "127.0.0.1:80", 1*time.Second)
 			if err != nil {
 				return true, nil
 			}
-			conn.Close()
+			_ = conn.Close()
 			return false, nil
 		})
 
@@ -144,7 +144,9 @@ func (n *NginxController) testTemplate(cfg []byte) error {
 	if err != nil {
 		return err
 	}
-	defer tmpfile.Close()
+	defer func() {
+		_ = tmpfile.Close()
+	}()
 	err = ioutil.WriteFile(tmpfile.Name(), cfg, 0644)
 	if err != nil {
 		return err
@@ -162,7 +164,7 @@ Error: %v
 		return errors.New(oe)
 	}
 
-	os.Remove(tmpfile.Name())
+	_ = os.Remove(tmpfile.Name())
 	return nil
 }
 
@@ -221,7 +223,7 @@ func isNginxProcessPresent() bool {
 }
 
 func waitForNginxShutdown() {
-	wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
+	_ = wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		if !isNginxProcessPresent() {
 			return true, nil
 		}

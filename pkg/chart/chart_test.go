@@ -47,7 +47,7 @@ func TestReplaceConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ReplaceConfig(tt.args.origin, tt.args.path, tt.args.newValue)
+			got, err := ReplaceConfig(tt.args.origin, tt.args.path, tt.args.newValue, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReplaceConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return

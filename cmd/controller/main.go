@@ -71,7 +71,7 @@ func RunController(opts *Options, stopCh <-chan struct{}) error {
 
 func main() {
 	// fix for avoiding glog Noisy logs
-	flag.CommandLine.Parse([]string{})
+	_ = flag.CommandLine.Parse([]string{})
 
 	app := cli.NewApp()
 	app.Name = "canary-release"
@@ -94,6 +94,5 @@ func main() {
 	// sort flags by name
 	sort.Sort(cli.FlagsByName(app.Flags))
 
-	app.Run(os.Args)
-
+	_ = app.Run(os.Args)
 }

@@ -1,6 +1,6 @@
-FROM cargo.caicloudprivatetest.com/caicloud/alpine:3.6
+FROM cargo.caicloud.xyz/library/debian:stretch
 
-COPY bin/linux_amd64/controller /usr/bin/canaryrelease
+COPY bin/controller /usr/bin/canaryrelease
 
 ENTRYPOINT ["/usr/bin/canaryrelease"]
 

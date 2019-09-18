@@ -290,7 +290,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ap
 		//    But we only need one.
 		if !strings.HasPrefix(dp.Name, cr.Name+proxyNameSuffix) || updated {
 			log.Warn("Delete unexpected proxy", log.Fields{"dp.name": dp.Name, "cr.name": cr.Name})
-			crc.client.AppsV1().Deployments(dp.Namespace).Delete(dp.Name, &metav1.DeleteOptions{})
+			_ = crc.client.AppsV1().Deployments(dp.Namespace).Delete(dp.Name, &metav1.DeleteOptions{})
 			continue
 		}
 
@@ -300,7 +300,7 @@ func (crc *CanaryReleaseController) sync(cr *releaseapi.CanaryRelease, dps []*ap
 	}
 
 	if !updated {
-		crc.addCondition(cr, api.NewCondition(api.ReasonCreating, ""))
+		_ = crc.addCondition(cr, api.NewCondition(api.ReasonCreating, ""))
 		log.Info("Create proxy for canary release", log.Fields{"dp.name": desiredDeploy.Name, "cr.name": cr.Name})
 		_, err = crc.client.AppsV1().Deployments(cr.Namespace).Create(desiredDeploy)
 		if err != nil {
@@ -514,6 +514,6 @@ func (crc *CanaryReleaseController) addCondition(cr *releaseapi.CanaryRelease, c
 	return err
 }
 
-func (crc *CanaryReleaseController) addErrorCondition(cr *releaseapi.CanaryRelease, err error) error {
-	return crc.addCondition(cr, api.NewConditionFrom(err))
-}
+//func (crc *CanaryReleaseController) addErrorCondition(cr *releaseapi.CanaryRelease, err error) error {
+//	return crc.addCondition(cr, api.NewConditionFrom(err))
+//}

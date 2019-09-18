@@ -8,7 +8,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-// ReplaceConfig replaces orginal config with value in the key of given path.
+// ReplaceConfig replaces original config with value in the key of given path.
 func ReplaceConfig(origin, path, newValue, suffix string) (string, error) {
 	paths := strings.Split(path, "/")
 	if len(paths) == 0 {
